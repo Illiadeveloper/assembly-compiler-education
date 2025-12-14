@@ -10,6 +10,9 @@ enum class TokenType {
   LBRACKET,
   RBRACKET,
   COLON,
+  PLUS,
+  MINUS,
+  STAR,
   INVALID
 };
 

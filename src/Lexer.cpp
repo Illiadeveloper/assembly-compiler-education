@@ -122,6 +122,15 @@ std::vector<Token> Lexer::tokenize() {
       case ']':
         tokens.push_back({TokenType::RBRACKET, std::string(1, get()), line});
         break;
+      case '+':
+        tokens.push_back({TokenType::STAR, std::string(1, get()), line});
+        break;
+      case '-':
+        tokens.push_back({TokenType::MINUS, std::string(1, get()), line});
+        break;
+      case '*':
+        tokens.push_back({TokenType::PLUS, std::string(1, get()), line});
+        break;
       }
     }
   }
