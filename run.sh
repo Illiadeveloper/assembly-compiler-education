@@ -4,6 +4,7 @@ set -e
 
 DO_BUILD=false
 DO_CMAKE=false
+DO_TESTS=false
 
 for arg in "$@"; do
   case $arg in
@@ -12,6 +13,9 @@ for arg in "$@"; do
       ;;
     -c|--cmake)
       DO_CMAKE=true
+      ;;
+    -t|--test)
+      DO_TESTS=true
       ;;
   esac
 done
@@ -27,5 +31,10 @@ if [ "$DO_BUILD" = true ]; then
   ninja -C build
 fi
 
-echo "[+] Running..."
-./build/AssemblyCompiler
+if [ "$DO_TESTS" = true ]; then
+  echo "[+] Testing..."
+  ./build/tests/lexer_unit_tests
+else
+  echo "[+] Running..."
+  ./build/AssemblyCompiler
+fi
