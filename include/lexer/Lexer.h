@@ -33,4 +33,5 @@ private:
 public:
   Lexer(const std::string &source);
   std::vector<Token> tokenize();
+  std::vector<LexError> getErrors() const;
 };

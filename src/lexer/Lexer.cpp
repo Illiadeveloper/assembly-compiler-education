@@ -1,7 +1,9 @@
 #include "lexer/Lexer.h"
+#include "common/Token.h"
 #include <cctype>
 #include <iostream>
 #include <ratio>
+#include <string>
 
 Lexer::Lexer(const std::string &source) : code(source) {}
 
@@ -48,6 +50,8 @@ void Lexer::skipComment() {
 void Lexer::addError(const std::string &msg) {
   errors.push_back({line, pos, msg});
 }
+
+std::vector<LexError> Lexer::getErrors() const { return errors; }
 
 Token Lexer::readWord() {
   int start = pos;
@@ -108,6 +112,7 @@ std::vector<Token> Lexer::tokenize() {
       switch (c) {
       default:
         addError("Unknown symbol");
+        tokens.push_back({TokenType::INVALID, std::string(1, get()), line});
         get();
         break;
       case ',':
