@@ -1,0 +1,42 @@
+/**
+ * @mainpage Assembly Compiler Documentation
+ *
+ * @section overview Overview
+ *
+ * This project implements a simple assembly compiler designed for learning 
+ * and experimentation. The compiler follows a standard compilation pipeline 
+ * and transforms assembly source code into tokens, parses them into an 
+ * abstract syntax tree, performs semantic checks, and generates output code.
+ *
+ * @section pipeline Compilation Pipeline
+ *
+ * The compiler consists of the following stages:
+ *
+ * - **Lexer**: Performs lexical analysis on the input source code, producing 
+ *   a stream of tokens (`Token`) while collecting lexical errors (`LexError`). 
+ *   Handles whitespace, comments, identifiers, numbers, and symbols.
+ *
+ * - **Parser**: Consumes the token stream and builds an abstract syntax tree (AST). 
+ *   Detects syntactic errors and ensures the code structure is valid.
+ *
+ * - **Semantic Analyzer**: Traverses the AST to perform semantic checks, 
+ *   such as verifying variable definitions, instruction validity, and type consistency.
+ *
+ * - **Code Generator**: Generates output code (e.g., machine code or intermediate code) 
+ *   from the AST, ready for execution or further compilation stages.
+ *
+ * @section modules Modules
+ *
+ * The compiler is organized into the following main modules:
+ * - **Lexer**: Tokenization and lexical error reporting
+ * - **Parser**: Syntax analysis and AST construction
+ * - **Semantic Analyzer**: Semantic checks and validation
+ * - **Code Generator**: Final code emission
+ *
+ * @section notes Additional Notes
+ *
+ * - Internal helper functions (marked with @internal) are documented but 
+ *   not exposed in public API documentation.
+ * - The compiler is designed for clarity and educational purposes; 
+ *   performance optimizations are minimal.
+ */
