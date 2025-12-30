@@ -22,7 +22,7 @@
  * - **Semantic Analyzer**: Traverses the AST to perform semantic checks, 
  *   such as verifying variable definitions, instruction validity, and type consistency.
  *
- * - **Code Generator**: Generates output code (e.g., machine code or intermediate code) 
+ * - **Code Generator**: Generates output code (machine code)
  *   from the AST, ready for execution or further compilation stages.
  *
  * @section modules Modules
@@ -33,10 +33,4 @@
  * - **Semantic Analyzer**: Semantic checks and validation
  * - **Code Generator**: Final code emission
  *
- * @section notes Additional Notes
- *
- * - Internal helper functions (marked with @internal) are documented but 
- *   not exposed in public API documentation.
- * - The compiler is designed for clarity and educational purposes; 
- *   performance optimizations are minimal.
  */
