@@ -1,143 +1,245 @@
 #include "lexer/Lexer.h"
 #include "common/Token.h"
 #include <cctype>
-#include <iostream>
-#include <ratio>
 #include <string>
 
-Lexer::Lexer(const std::string &source) : code(source) {}
+Lexer::Lexer(std::string source) : code(std::move(source)) {}
 
-bool Lexer::eof() const { return pos >= code.size(); }
+bool Lexer::endOfFile() const { return position >= code.size(); }
 
 // Just show the char
-char Lexer::peek() const {
-  if (pos >= code.size())
+char Lexer::peek(size_t offset) const {
+  if (position + offset >= code.size())
     return '\0';
-  return code[pos];
+  return code[position + offset];
 }
 
-char Lexer::peekNext() const {
-  if (pos + 1 >= code.size())
-    return '\0';
-  return code[pos + 1];
-}
-
-// Get and move
-char Lexer::get() {
-  if (pos >= code.size()) {
+char Lexer::advance() {
+  if (position >= code.size()) {
     return '\0';
   }
 
-  char c = code[pos++];
-  if (c == '\n')
+  char c = code[position++];
+  if (c == '\n') {
+    lineStart = position;
     line++;
+  }
   return c;
 }
 
 void Lexer::skipWhitespace() {
   while (std::isspace(peek())) {
-    get();
+    advance();
   }
 }
 
 void Lexer::skipComment() {
   while (peek() != '\n' && peek() != '\0') {
-    // std::cout << "SKIP COMM: " << pos << std::endl;
-    get();
+    // std::cout << "SKIP COMM: " << position << std::endl;
+    advance();
   }
 }
 
-void Lexer::addError(const std::string &msg) {
-  errors.push_back({line, pos, msg});
+void Lexer::addError(const SourceSpan& span, const std::string &msg) {
+  errors.push_back({span, msg});
 }
 
 std::vector<LexError> Lexer::getErrors() const { return errors; }
 
-Token Lexer::readWord() {
-  int start = pos;
-  int startLine = line;
+Token Lexer::readIdentifier() {
+  int start = position;
   while (std::isalnum(peek()) || peek() == '_')
-    get();
-  return {TokenType::WORD, code.substr(start, pos - start), startLine};
+    advance();
+  return {TokenType::IDENTIFIER,
+          {line, static_cast<int>(start - lineStart + 1),
+           static_cast<int>(position - start)},
+          code.substr(start, position - start)};
 }
 
 Token Lexer::readNumber() {
-  int start = pos;
+  int start = position;
   int startLine = line;
   bool isHex = false;
 
-  if (peek() == '0' && (peekNext() == 'x' || peekNext() == 'X')) {
-    get();
-    get();
+  if (peek() == '0' && (peek(1) == 'x' || peek(1) == 'X')) {
+    advance();
+    advance();
     isHex = true;
     if (!std::isxdigit(peek())) {
-      size_t end = pos;
-      addError("Hex literal '0x' without digits");
-      return {TokenType::INVALID, code.substr(start, end - start), startLine};
+
+      SourceSpan span{line, static_cast<int>(start - lineStart + 1),
+                      static_cast<int>(position - start)};
+      addError(span, "Hex literal '0x' without digits");
+      return {TokenType::INVALID, span, code.substr(start, position - start)};
     }
     while (std::isxdigit(peek()))
-      get();
+      advance();
   } else {
     while (std::isdigit(peek()))
-      get();
+      advance();
   }
 
   if (std::isalpha(peek()) || peek() == '_') {
     while (std::isalpha(peek()) || peek() == '_')
-      get();
-    size_t end = pos;
-    addError("Invalid number leteral (letters after digits)");
-    return {TokenType::INVALID, code.substr(start, end - start), startLine};
+      advance();
+    SourceSpan span{line, static_cast<int>(start - lineStart + 1),
+                    static_cast<int>(position - start)};
+    addError(span, "Invalid number leteral (letters after digits)");
+    return {TokenType::INVALID, span, code.substr(start, position - start)};
   }
 
-  size_t end = pos;
-  return {TokenType::NUMBER, code.substr(start, end - start), startLine};
+  int base = isHex ? 16 : 10;
+
+  return {TokenType::NUMBER,
+          {line, static_cast<int>(start - lineStart + 1),
+           static_cast<int>(position - start)},
+          std::stoll(code.substr(start, position - start).c_str(), nullptr, base)};
+}
+
+Token Lexer::readString() {
+  int start = position;
+  advance();
+
+  std::string value;
+
+  while (!endOfFile()) {
+    char currentChar = peek();
+    if (currentChar == '"') {
+      advance();
+      return {TokenType::STRING,
+              {line, static_cast<int>(start - lineStart + 1),
+               static_cast<int>(position - start)},
+              value};
+    }
+    if (currentChar == '\\') {
+      advance();
+      if (endOfFile())
+        break;
+
+      char esc = peek();
+      switch (esc) {
+      case 'n':
+        value.push_back('\n');
+        break;
+      case 't':
+        value.push_back('\t');
+        break;
+      case '"':
+        value.push_back('\"');
+        break;
+      case '\\':
+        value.push_back('\\');
+        break;
+      default:
+        addError({line, static_cast<int>(position), 1}, "Unknown escape sequence.");
+        value.push_back(esc);
+        break;
+      }
+      advance();
+    } else {
+      value.push_back(currentChar);
+      advance();
+    }
+  }
+
+  SourceSpan span{line, static_cast<int>(start - lineStart + 1),
+                  static_cast<int>(position - start)};
+  addError(span, "Unterminated string literal");
+
+  return {TokenType::INVALID, span, value};
 }
 
 std::vector<Token> Lexer::tokenize() {
   std::vector<Token> tokens;
 
-  while (!eof()) {
+  while (!endOfFile()) {
     skipWhitespace();
-    char c = peek();
-    if (c == '\0') {
+
+    if (endOfFile())
       break;
-    } else if (c == ';') {
+
+    char currentChar = peek();
+
+    if (currentChar == ';') {
       skipComment();
-    } else if (std::isalpha(c) || c == '_') {
-      tokens.push_back(readWord());
-    } else if (std::isdigit(c)) {
+      continue;
+    }
+
+    if (currentChar == '"') {
+      tokens.push_back(readString());
+      continue;
+    }
+
+    if (std::isalpha(currentChar) || currentChar == '_') {
+      tokens.push_back(readIdentifier());
+      continue;
+    }
+
+    if (std::isdigit(currentChar)) {
       tokens.push_back(readNumber());
-    } else {
-      switch (c) {
-      default:
-        addError("Unknown symbol");
-        tokens.push_back({TokenType::INVALID, std::string(1, get()), line});
-        get();
-        break;
-      case ',':
-        tokens.push_back({TokenType::COMMA, std::string(1, get()), line});
-        break;
-      case ':':
-        tokens.push_back({TokenType::COLON, std::string(1, get()), line});
-        break;
-      case '[':
-        tokens.push_back({TokenType::LBRACKET, std::string(1, get()), line});
-        break;
-      case ']':
-        tokens.push_back({TokenType::RBRACKET, std::string(1, get()), line});
-        break;
-      case '+':
-        tokens.push_back({TokenType::STAR, std::string(1, get()), line});
-        break;
-      case '-':
-        tokens.push_back({TokenType::MINUS, std::string(1, get()), line});
-        break;
-      case '*':
-        tokens.push_back({TokenType::PLUS, std::string(1, get()), line});
-        break;
-      }
+      continue;
+    }
+
+    int startColumn = static_cast<int>(position - lineStart + 1);
+
+    switch (currentChar) {
+    case ',':
+      advance();
+      tokens.push_back(
+          {TokenType::COMMA, {line, startColumn, 1}, std::string(",")});
+      break;
+
+    case ':':
+      advance();
+      tokens.push_back(
+          {TokenType::COLON, {line, startColumn, 1}, std::string(":")});
+      break;
+
+    case '[':
+      advance();
+      tokens.push_back(
+          {TokenType::LBRACKET, {line, startColumn, 1}, std::string("[")});
+      break;
+
+    case ']':
+      advance();
+      tokens.push_back(
+          {TokenType::RBRACKET, {line, startColumn, 1}, std::string("]")});
+      break;
+
+    case '+':
+      advance();
+      tokens.push_back(
+          {TokenType::PLUS, {line, startColumn, 1}, std::string("+")});
+      break;
+
+    case '-':
+      advance();
+      tokens.push_back(
+          {TokenType::MINUS, {line, startColumn, 1}, std::string("-")});
+      break;
+
+    case '*':
+      advance();
+      tokens.push_back(
+          {TokenType::STAR, {line, startColumn, 1}, std::string("*")});
+      break;
+
+    case '/':
+      advance();
+      tokens.push_back(
+          {TokenType::SLASH, {line, startColumn, 1}, std::string("/")});
+      break;
+    default:
+      advance();
+      SourceSpan span{line, startColumn, 1};
+      addError(span, "Unknown symbol");
+      tokens.push_back({TokenType::INVALID, span, std::string(1, currentChar)});
+      break;
     }
   }
+  tokens.push_back({TokenType::END_OF_FILE,
+                    {line, static_cast<int>(position - lineStart + 1), 0},
+                    ""});
   return tokens;
 }

@@ -1,5 +1,6 @@
 #include "lexer/Lexer.h"
 #include <iostream>
+#include <string>
 #include <vector>
 
 void test(const std::string &src) {
@@ -9,8 +10,13 @@ void test(const std::string &src) {
 
   std::cout << "--- TOKENS ---\n";
   for (const auto &t : tokens) {
-    std::cout << "TYPE: " << (int)t.type << "\tVALUE: '" << t.value
-              << "'\tLINE: " << t.line << "\n";
+    std::cout << "TYPE: " << (int)t.type << "\tVALUE: '";
+    if (auto *v = std::get_if<int64_t>(&t.value)) {
+      std::cout << *v;
+    } else {
+      std::cout << *std::get_if<std::string>(&t.value);
+    }
+    std::cout << "'\tLINE: " << t.span.line << "\n";
   }
   std::cout << "\n";
 }
