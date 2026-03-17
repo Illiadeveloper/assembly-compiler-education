@@ -15,6 +15,9 @@ enum class TokenType {
   /// End of input stream
   END_OF_FILE,
 
+  /// End of current line
+  NEWLINE,
+
   /// Identifier (labels, symbols, instruction mnemonics, mov,..)
   IDENTIFIER,
   
@@ -38,6 +41,9 @@ enum class TokenType {
 
   /// ','
   COMMA,
+  
+  /// '.'
+  DOT,
 
   /// ':'
   COLON,

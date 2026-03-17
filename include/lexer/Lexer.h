@@ -8,19 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "common/CompilerError.h"
 #include "common/Token.h"
-
-/// @brief Represents a lexical error detected during tokenization.
-///
-/// Lexical errors do not stop the lexer; they are collected and
-/// can be retrieved after tokenization is complete.
-struct LexError {
-  /// Source location where the error occurred
-  SourceSpan span;
-
-  /// Human-readable error message
-  std::string message;
-};
 
 /// @brief Assembly lexer converting source text into tokens.
 ///
@@ -38,7 +27,7 @@ private:
   std::string code;
 
   /// List of lexical errors encountered during tokenization
-  std::vector<LexError> errors;
+  std::vector<CompilerError> errors;
   
   /// Current position in the source string (byte index)
   size_t position = 0;
@@ -127,5 +116,5 @@ public:
   /// Returns all lexical errors encountered during tokenization.
   ///
   /// @return Vector of LexError objects.
-  std::vector<LexError> getErrors() const;
+  std::vector<CompilerError> getErrors() const;
 };
