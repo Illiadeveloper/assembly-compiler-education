@@ -1,4 +1,5 @@
 #include "lexer/Lexer.h"
+#include "common/CompilerError.h"
 #include "common/Token.h"
 #include <cctype>
 #include <string>
@@ -28,23 +29,27 @@ char Lexer::advance() {
 }
 
 void Lexer::skipWhitespace() {
-  while (std::isspace(peek())) {
-    advance();
+  while (true) {
+    char c = peek();
+    if (c == ' ' || c == '\t' || c == '\r' || c == '\f' || c == '\v') {
+      advance();
+    } else {
+      break;
+    }
   }
 }
 
 void Lexer::skipComment() {
   while (peek() != '\n' && peek() != '\0') {
-    // std::cout << "SKIP COMM: " << position << std::endl;
     advance();
   }
 }
 
-void Lexer::addError(const SourceSpan& span, const std::string &msg) {
-  errors.push_back({span, msg});
+void Lexer::addError(const SourceSpan &span, const std::string &msg) {
+  errors.push_back({ErrorStage::LEXER, span, msg});
 }
 
-std::vector<LexError> Lexer::getErrors() const { return errors; }
+std::vector<CompilerError> Lexer::getErrors() const { return errors; }
 
 Token Lexer::readIdentifier() {
   int start = position;
@@ -90,10 +95,11 @@ Token Lexer::readNumber() {
 
   int base = isHex ? 16 : 10;
 
-  return {TokenType::NUMBER,
-          {line, static_cast<int>(start - lineStart + 1),
-           static_cast<int>(position - start)},
-          std::stoll(code.substr(start, position - start).c_str(), nullptr, base)};
+  return {
+      TokenType::NUMBER,
+      {line, static_cast<int>(start - lineStart + 1),
+       static_cast<int>(position - start)},
+      std::stoll(code.substr(start, position - start).c_str(), nullptr, base)};
 }
 
 Token Lexer::readString() {
@@ -131,7 +137,8 @@ Token Lexer::readString() {
         value.push_back('\\');
         break;
       default:
-        addError({line, static_cast<int>(position), 1}, "Unknown escape sequence.");
+        addError({line, static_cast<int>(position), 1},
+                 "Unknown escape sequence.");
         value.push_back(esc);
         break;
       }
@@ -160,6 +167,14 @@ std::vector<Token> Lexer::tokenize() {
 
     char currentChar = peek();
 
+    if (currentChar == '\n') {
+      int startColumn = static_cast<int>(position - lineStart - 1);
+      advance();
+      SourceSpan span{line, startColumn, 1};
+      tokens.push_back({TokenType::NEWLINE, span, std::string("\n")});
+      continue;
+    }
+
     if (currentChar == ';') {
       skipComment();
       continue;
@@ -187,6 +202,12 @@ std::vector<Token> Lexer::tokenize() {
       advance();
       tokens.push_back(
           {TokenType::COMMA, {line, startColumn, 1}, std::string(",")});
+      break;
+
+    case '.':
+      advance();
+      tokens.push_back(
+          {TokenType::DOT, {line, startColumn, 1}, std::string(",")});
       break;
 
     case ':':
