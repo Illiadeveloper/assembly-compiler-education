@@ -2,3 +2,4 @@ build/
 .cache/
 run.sh
 *.zip
+docs/html

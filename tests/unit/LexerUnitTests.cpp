@@ -1,4 +1,5 @@
 
+#include "common/Token.h"
 #include "lexer/Lexer.h"
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -6,7 +7,7 @@
 
 // ===================== helpers =====================
 
-static std::vector<Token> withoutEOF(const std::vector<Token>& toks) {
+static std::vector<Token> withoutEOF(const std::vector<Token> &toks) {
   if (!toks.empty() && toks.back().type == TokenType::END_OF_FILE) {
     return {toks.begin(), toks.end() - 1};
   }
@@ -16,8 +17,10 @@ static std::vector<Token> withoutEOF(const std::vector<Token>& toks) {
 static std::vector<TokenType> types(const std::vector<Token> &toks) {
   std::vector<TokenType> out;
   out.reserve(toks.size());
-  for (const auto &t : toks)
+  for (const auto &t : toks) {
+    // std::cout << (int)t.type << std::endl;
     out.push_back(t.type);
+  }
   return out;
 }
 
@@ -47,11 +50,8 @@ static std::vector<std::string> valuesNoEOF(const std::vector<Token> &toks) {
 // ===================== tests =====================
 
 TEST(TokenStruct, FieldsAccessibleAndCorrect) {
-  Token t{
-      TokenType::IDENTIFIER,
-      SourceSpan{42, 5, 10},
-      std::string("identifier")
-  };
+  Token t{TokenType::IDENTIFIER, SourceSpan{42, 5, 10},
+          std::string("identifier")};
 
   EXPECT_EQ(t.type, TokenType::IDENTIFIER);
   EXPECT_EQ(t.span.line, 42);
@@ -109,10 +109,11 @@ TEST(Lexer_Assembler, CommentFullLine_Semicolon_Skipped) {
   EXPECT_EQ(toks.back().type, TokenType::END_OF_FILE);
 
   std::vector<TokenType> expected_types = {
+      TokenType::NEWLINE,    // \n
       TokenType::IDENTIFIER, // MOV
       TokenType::IDENTIFIER, // R1
       TokenType::COMMA,      // ,
-      TokenType::IDENTIFIER  // R2
+      TokenType::IDENTIFIER, // R2
   };
 
   EXPECT_EQ(typesNoEOF(toks), expected_types);
@@ -128,9 +129,7 @@ TEST(Lexer_Assembler, Comment_Ignored) {
   EXPECT_TRUE(errs.empty());
   EXPECT_EQ(toks.back().type, TokenType::END_OF_FILE);
 
-  std::vector<std::string> expected_values = {
-      "ADD", "R3", ",", "R4"
-  };
+  std::vector<std::string> expected_values = {"ADD", "R3", ",", "R4"};
 
   EXPECT_EQ(valuesNoEOF(toks), expected_values);
 }
@@ -167,23 +166,20 @@ TEST(Lexer_Assembler, InvalidCharacter_ProducesErrorAndInvalidToken) {
   EXPECT_FALSE(errs.empty());
   EXPECT_EQ(toks.back().type, TokenType::END_OF_FILE);
 
-  bool has_invalid = std::any_of(
-      toks.begin(), toks.end() - 1,
-      [](const Token &t) {
-        return t.type == TokenType::INVALID;
-      });
+  bool has_invalid =
+      std::any_of(toks.begin(), toks.end() - 1,
+                  [](const Token &t) { return t.type == TokenType::INVALID; });
 
   EXPECT_TRUE(has_invalid);
 }
 
 TEST(Lexer_Assembler, LineNumbers_WithCommentsAndEmptyLines) {
-  const std::string src =
-      "label:\n"
-      "; full comment\n"
-      "MOV R1, 1 ; inline\n"
-      "\n"
-      "; another comment\n"
-      "JMP label";
+  const std::string src = "label:\n"
+                          "; full comment\n"
+                          "MOV R1, 1 ; inline\n"
+                          "\n"
+                          "; another comment\n"
+                          "JMP label";
 
   Lexer lx(src);
   auto toks = lx.tokenize();
@@ -219,10 +215,9 @@ TEST(Lexer_Assembler, LineNumbers_WithCommentsAndEmptyLines) {
 }
 
 TEST(Lexer_NoErrorsForValidAssemblerInput, EmptyErrorsVector) {
-  const std::string src =
-      "START: MOV R0, 0\n"
-      "LD [R2], R3\n"
-      "ADD R1, R2";
+  const std::string src = "START: MOV R0, 0\n"
+                          "LD [R2], R3\n"
+                          "ADD R1, R2";
 
   Lexer lx(src);
   lx.tokenize();
