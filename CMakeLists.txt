@@ -22,3 +22,4 @@ if(BUILD_TESTS)
   add_subdirectory(external)
   add_subdirectory(tests)
 endif()
+
