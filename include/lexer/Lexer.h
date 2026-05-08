@@ -22,13 +22,13 @@
 ///
 /// The lexer does not perform any syntactic or semantic validation.
 class Lexer {
-private:
+ private:
   /// Full source code being tokenized
   std::string code;
 
   /// List of lexical errors encountered during tokenization
   std::vector<CompilerError> errors;
-  
+
   /// Current position in the source string (byte index)
   size_t position = 0;
 
@@ -56,7 +56,7 @@ private:
   /// Updates line and column tracking as needed.
   /// @return The consumed character.
   char advance();
-  
+
   /// @internal
   /// Records a lexical error at the given source span.
   ///
@@ -64,7 +64,7 @@ private:
   ///
   /// @param span Source span associated with the error.
   /// @param msg Human-readable error message.
-  void addError(const SourceSpan& span, const std::string &msg);
+  void addError(const SourceSpan& span, const std::string& msg);
 
   /// @internal
   /// Skips whitespace characters and updates line counters.
@@ -76,7 +76,7 @@ private:
   /// Comment syntax is defined by the lexer implementation
   /// (e.g. single-line comments).
   void skipComment();
-  
+
   /// @internal
   /// Reads an identifier or instruction mnemonic.
   ///
@@ -95,7 +95,7 @@ private:
   /// @return Token of type TokenType::NUMBER.
   Token readNumber();
 
-public:
+ public:
   /// Constructs a lexer for the given source code.
   ///
   /// @param source Full assembly source code to be tokenized.
@@ -112,9 +112,10 @@ public:
   /// @return Vector of tokens produced from the input source.
   std::vector<Token> tokenize();
 
-
   /// Returns all lexical errors encountered during tokenization.
   ///
   /// @return Vector of LexError objects.
-  std::vector<CompilerError> getErrors() const;
+  const std::vector<CompilerError>& getErrors() const;
+  
+  bool hasErrors() const noexcept;
 };
