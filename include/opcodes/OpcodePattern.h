@@ -2,12 +2,13 @@
 /// @brief Defines structures describing how instructions are encoded into
 /// machine code
 #pragma once
-#include "Opcode.h"
-#include "common/OperandTypes.h"
-#include "common/Registers.h"
 #include <cstdint>
 #include <optional>
 #include <vector>
+
+#include "Opcode.h"
+#include "common/OperandTypes.h"
+#include "common/Registers.h"
 
 // enum RegClassMask : uint8_t {
 //   RC_NONE  = 0,
@@ -28,15 +29,15 @@
 /// @brief Bitmask representing allowed operand kinds
 enum OperandKindMask : uint8_t {
   OK_NONE = 0,
-  OK_REG = 1 << 0,  ///< Register Operand
-  OK_MEM = 1 << 1,  ///< Memory Operand
-  OK_IMM = 1 << 2,  ///< Immediate value
-  OK_LABEL = 1 << 3 ///< Label (for jumps, call, memoty access...)
+  OK_REG = 1 << 0,   ///< Register Operand
+  OK_MEM = 1 << 1,   ///< Memory Operand
+  OK_IMM = 1 << 2,   ///< Immediate value
+  OK_LABEL = 1 << 3  ///< Label (for jumps, call, memoty access...)
 };
 
 /// @brief Bitwise OR operator for OperandKindMask.
 inline OperandKindMask operator|(OperandKindMask a,
-                                 OperandKindMask b) { // for OK_REG | OK_MEM
+                                 OperandKindMask b) {  // for OK_REG | OK_MEM
   return static_cast<OperandKindMask>(static_cast<uint8_t>(a) |
                                       static_cast<uint8_t>(b));
 }
@@ -48,22 +49,23 @@ inline OperandKindMask operator|(OperandKindMask a,
 /// and optionally enforces a specific register
 struct OperandConstraint {
   OperandKindMask allowed =
-      OK_NONE; ///< Allowed operand kinds (REG, MEM, IMM, etc.)
+      OK_NONE;  ///< Allowed operand kinds (REG, MEM, IMM, etc.)
   OperandSize size =
-      OperandSize::ANY; ///< Required operand size (e.g., B8, B32, ANY)
+      OperandSize::ANY;  ///< Required operand size (e.g., B8, B32, ANY)
   std::optional<Register>
-      exactReg; ///< Specific register requirement (e.g., AL in ADD AL, imm8)
+      exactReg;  ///< Specific register requirement (e.g., AL in ADD AL, imm8)
 };
 
 /// @brief Specifies additional encoding required after base opcode bytes.
 enum class ExtraEncoding {
-  NONE,        ///< No extra encoding
-  IMM8,        ///< 8-bit immediate
-  IMM8_SIGNED, ///< 8-bit signed immediate
-  IMM16,       ///< 16-bit immediate
-  IMM32,       ///< 32-bit immediate
-  REL8,        ///< 8-bit relative offset
-  REL32        ///< 32-bit relative offset
+  NONE,         ///< No extra encoding
+  IMM8,         ///< 8-bit immediate
+  IMM8_SIGNED,  ///< 8-bit signed immediate
+  IMM16,        ///< 16-bit immediate
+  IMM32,        ///< 32-bit immediate
+  IMM64,        ///< 64-bit immediate
+  REL8,         ///< 8-bit relative offset
+  REL32         ///< 32-bit relative offset
 };
 /// ---------------------------------------------------------------------------
 /// Encoding reference (for documentation purposes)
@@ -114,7 +116,7 @@ enum class ExtraEncoding {
 /// - extra encoding (immediates, relative offsets)
 /// - operand size grouping rules
 struct OpcodePattern {
-  Opcode opcode; ///< Instruction opcode (e.g., MOV, ADD, LEA)
+  Opcode opcode;  ///< Instruction opcode (e.g., MOV, ADD, LEA)
 
   /// @brief Constraints for each operand in order
   std::vector<OperandConstraint> operands;
