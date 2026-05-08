@@ -1,12 +1,12 @@
 /// @file OpcodeTable.h
 /// @brief Encoding table of all opcodes
 #pragma once
+#include <array>
+#include <vector>
+
 #include "Opcode.h"
 #include "OpcodeFactories.h"
 #include "OpcodePattern.h"
-#include "common/Registers.h"
-#include <array>
-#include <vector>
 
 /// @brief Global opcode encoding table
 ///
@@ -45,8 +45,47 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
           AddPatterns::al_imm8(0x04),
           AddPatterns::rm_imm(OperandSize::B8, 0x80, 0)};
 
-      // MOV (late)
-      // table[static_cast<size_t>(Opcode::MOV)] = { ... };
+      /// ============================================================================
+      /// MOV — Move
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::MOV)] = {
+          // MOV r/m, r
+          MovPatterns::rm_r(OperandSize::B8, 0x88),
+          MovPatterns::rm_r(OperandSize::B16, 0x89),
+          MovPatterns::rm_r(OperandSize::B32, 0x89),
+          MovPatterns::rm_r(OperandSize::B64, 0x89),
+
+          // MOV r, r/m
+          MovPatterns::r_rm(OperandSize::B8, 0x8A),
+          MovPatterns::r_rm(OperandSize::B16, 0x8B),
+          MovPatterns::r_rm(OperandSize::B32, 0x8B),
+          MovPatterns::r_rm(OperandSize::B64, 0x8B),
+
+          // MOV r, imm  (B8+r форма)
+          MovPatterns::r_imm(OperandSize::B8, 0xB0),
+          MovPatterns::r_imm(OperandSize::B16, 0xB8),
+          MovPatterns::r_imm(OperandSize::B32, 0xB8),
+          MovPatterns::r_imm(OperandSize::B64, 0xB8),
+
+          // MOV r/m, imm  (C6/C7 форма)
+          MovPatterns::rm_imm(OperandSize::B8, 0xC6),
+          MovPatterns::rm_imm(OperandSize::B16, 0xC7),
+          MovPatterns::rm_imm(OperandSize::B32, 0xC7),
+          MovPatterns::rm_imm(OperandSize::B64, 0xC7),
+      };
+
+      /// ============================================================================
+      /// SYSCALL
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::SYSCALL)] = {
+          OpcodePattern{Opcode::SYSCALL,
+                        {},  // doens't have operands
+                        {0x0F, 0x05},
+                        false,
+                        std::nullopt,
+                        false,
+                        ExtraEncoding::NONE,
+                        {}}};
 
       return table;
     }();
