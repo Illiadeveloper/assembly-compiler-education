@@ -1,3 +1,4 @@
+/// @file InstructionEncoder.cpp
 #include "encoder/InstructionEncoder.h"
 
 #include <cstdint>

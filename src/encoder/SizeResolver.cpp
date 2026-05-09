@@ -108,7 +108,6 @@ bool SizeResolver::passSection(Section& section, std::size_t sectionIndex) {
     }, stmt);
   }
 
-  // Обновляем size секции
   if (section.size != offset) {
     section.size = offset;
     changed = true;
