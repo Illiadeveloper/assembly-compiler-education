@@ -78,6 +78,7 @@ private:
   /// =========================
   /// Token navigation
   /// =========================
+
   const Token &peek(size_t offset = 0) const;
   const Token &advance();
   void skipToNextLine();
@@ -86,6 +87,7 @@ private:
   /// =========================
   /// Matching & helpers
   /// =========================
+
   bool match(TokenType type, size_t offset = 0) const;
   bool tokenIsDataDirective(const Token &token) const;
   std::optional<int64_t> parseSignedInteger();
@@ -93,6 +95,7 @@ private:
   /// =========================
   /// Classification
   /// =========================
+
   bool isGlobalDirective() const;
   bool isDataDirective() const;
   bool isSectionDirective() const;
@@ -110,9 +113,9 @@ private:
   /// =========================
   /// Memory operand parsing
   /// =========================
+
   /// Parses arithmetic expressions used in memory operands
   /// (e.g., [rax + rbx*2 + 8])
-
   /// Parses an arithmetic expression used in memory operands.
   ///
   /// Implements a precedence-based (Pratt-style) parser to handle
@@ -160,6 +163,7 @@ private:
   /// =========================
   /// Directives
   /// =========================
+
   std::optional<GlobalDirective> parseGlobalDirective();
   std::optional<DataDirective> parseDataDirective();
   std::optional<SectionDirective> parseSectionDirective();
@@ -168,6 +172,7 @@ private:
   /// =========================
   /// High-level constructs
   /// =========================
+
   std::optional<Operand> parseOperand();
   std::optional<Instruction> parseInstruction();
 

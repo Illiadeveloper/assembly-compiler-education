@@ -1,8 +1,10 @@
+/// @file OpcodeFactories.cpp
 #include "opcodes/OpcodeFactories.h"
 
 /// ============================================================================
 /// ADD — Integer Addition
 /// ============================================================================
+
 OpcodePattern AddPatterns::rm_r(OperandSize sz, uint8_t base) {
   return OpcodePattern{
       Opcode::ADD,
@@ -54,6 +56,7 @@ OpcodePattern AddPatterns::rm_imm(OperandSize sz, uint8_t base, uint8_t modrm) {
 /// ============================================================================
 /// MOV — Move
 /// ============================================================================
+
 OpcodePattern MovPatterns::rm_r(OperandSize sz, uint8_t base) {
   return OpcodePattern{
       Opcode::MOV,
