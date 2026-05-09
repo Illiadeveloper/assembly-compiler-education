@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 # ===== Options =====
-option(BUILD_DOCS  "Build Doxygen documentation" OFF)
 option(BUILD_TESTS "Build unit tests"            OFF)
 
 add_subdirectory(src)
