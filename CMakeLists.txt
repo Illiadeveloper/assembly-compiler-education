@@ -11,10 +11,6 @@ option(BUILD_TESTS "Build unit tests"            OFF)
 
 add_subdirectory(src)
 
-# if(BUILD_DOCS)
-add_subdirectory(docs)
-# endif()
-
 if(BUILD_TESTS)
   include(CTest)
   enable_testing()
