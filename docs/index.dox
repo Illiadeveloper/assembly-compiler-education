@@ -3,34 +3,251 @@
  *
  * @section overview Overview
  *
- * This project implements a simple assembly compiler designed for learning 
- * and experimentation. The compiler follows a standard compilation pipeline 
- * and transforms assembly source code into tokens, parses them into an 
- * abstract syntax tree, performs semantic checks, and generates output code.
+ * This project implements an x86-64 assembly compiler that transforms
+ * assembly source code into a Linux ELF64 executable binary.
+ * The compiler is designed for learning purposes and supports a subset
+ * of NASM-style x86-64 assembly syntax.
  *
  * @section pipeline Compilation Pipeline
  *
- * The compiler consists of the following stages:
+ * The compiler follows a multi-stage pipeline:
  *
- * - **Lexer**: Performs lexical analysis on the input source code, producing 
- *   a stream of tokens (`Token`) while collecting lexical errors (`LexError`). 
- *   Handles whitespace, comments, identifiers, numbers, and symbols.
+ * @code
+ * Source Code (.asm)
+ *      ↓
+ *   Lexer          → tokens (Token)
+ *      ↓
+ *   Parser         → FlatProgram (flat list of AST statements)
+ *      ↓
+ *   Grouper        → Program (sections + SymbolTable)
+ *      ↓
+ *   SizeResolver   → fills symbol.offset and section.size
+ *      ↓
+ *   Layout         → fills section.virtualAddr and section.fileOffset
+ *      ↓
+ *   ElfWriter      → ELF64 executable binary
+ *                    (uses InstructionEncoder internally)
+ * @endcode
  *
- * - **Parser**: Consumes the token stream and builds an abstract syntax tree (AST). 
- *   Detects syntactic errors and ensures the code structure is valid.
+ * @section stages Stage Descriptions
  *
- * - **Semantic Analyzer**: Traverses the AST to perform semantic checks, 
- *   such as verifying variable definitions, instruction validity, and type consistency.
+ * @subsection lexer Lexer
+ * Performs lexical analysis on the input source string.
+ * Produces a flat list of tokens (`Token`) including identifiers,
+ * numbers, strings, punctuation, and newlines.
+ * Collects lexical errors without throwing exceptions.
+ * Handles: comments (`;`), string literals, integer literals,
+ * identifiers, registers, and special symbols.
  *
- * - **Code Generator**: Generates output code (machine code)
- *   from the AST, ready for execution or further compilation stages.
+ * @subsection parser Parser
+ * Consumes the token stream and produces a `FlatProgram` —
+ * a flat sequential list of `Statement` variants:
+ * - `Instruction` — assembly instruction with operands
+ * - `Label` — label declaration (e.g. `_start:`)
+ * - `SectionDirective` — `.text`, `.data`, `.bss`
+ * - `DataDirective` — `db`, `dw`, `dd`, `dq`, `resb`, `resw`, `resd`, `resq`, `align`
+ * - `EquDirective` — `name equ value`
+ * - `GlobalDirective` — `global name`
  *
- * @section modules Modules
+ * Supports NASM-style memory operands: `[rax + rbx*4 + 8]`.
+ * Error-tolerant: collects errors and recovers by skipping lines.
  *
- * The compiler is organized into the following main modules:
- * - **Lexer**: Tokenization and lexical error reporting
- * - **Parser**: Syntax analysis and AST construction
- * - **Semantic Analyzer**: Semantic checks and validation
- * - **Code Generator**: Final code emission
+ * @subsection grouper Grouper
+ * Transforms `FlatProgram` into a structured `Program` IR:
+ * - Groups statements into `Section` objects (`.text`, `.data`, `.bss`)
+ * - Builds `SymbolTable` mapping names to `Symbol` entries
+ * - Handles `Label`, `EquDirective`, `GlobalDirective`
+ * - Supports sections declared multiple times (merged correctly)
  *
+ * After Grouper: `symbol.offset = 0`, `section.size = 0` (not yet computed).
+ *
+ * @subsection size_resolver SizeResolver
+ * Iteratively computes exact byte sizes for all instructions
+ * using `InstructionEncoder`, then fills:
+ * - `Symbol::offset` — byte offset of each label within its section
+ * - `Section::size` — total byte size of each section
+ *
+ * Runs multiple passes until all offsets stabilize (relaxation).
+ * Typically converges in 1-2 iterations.
+ * Uses `InstructionEncoder::size()` internally.
+ *
+ * @subsection layout Layout
+ * Assigns memory addresses and file positions to sections:
+ * - `Section::virtualAddr` — virtual address in memory (e.g. `.text` → `0x401000`)
+ * - `Section::fileOffset` — byte offset within the output ELF file
+ *
+ * Sections are page-aligned (4KB boundaries).
+ * Does not know about instructions — purely geometric computation.
+ *
+ * @subsection instruction_encoder InstructionEncoder
+ * Translates a single `Instruction` into x86-64 machine code bytes.
+ * Driven by `OpcodeTable` — a declarative table of `OpcodePattern` entries.
+ *
+ * Encoding pipeline per instruction:
+ * -# Match operands against `OpcodeTable` patterns (`matchPattern`)
+ * -# Emit address size prefix `0x67` if 32-bit registers used in memory
+ * -# Emit `REX` prefix if 64-bit operands present
+ * -# Emit base opcode bytes
+ * -# Emit `ModRM` byte (register/memory encoding)
+ * -# Emit `SIB` byte if index register present
+ * -# Emit displacement (8 or 32 bit)
+ * -# Emit immediate or relative offset (`IMM8/16/32/64`, `REL32`)
+ *
+ * Used by both `SizeResolver` (size pass) and `ElfWriter` (emit pass).
+ *
+ * @subsection elf_writer ElfWriter
+ * Produces a valid Linux ELF64 executable binary:
+ * - Emits `Elf64_Ehdr` (ELF header)
+ * - Emits one `Elf64_Phdr` (`PT_LOAD` segment) per non-empty section
+ * - Emits section bytes using `InstructionEncoder::encode()`
+ * - Handles `.bss` correctly (zero `p_filesz`, non-zero `p_memsz`)
+ * - Resolves `_start` label as entry point
+ *
+ * @section ir Intermediate Representation
+ *
+ * @code
+ * Program
+ * ├── sections: vector<Section>
+ * │   ├── type: SectionDirectiveType (.text / .data / .bss)
+ * │   ├── items: vector<Statement>
+ * │   ├── size: uint64_t
+ * │   ├── fileOffset: uint64_t
+ * │   └── virtualAddr: uint64_t
+ * └── symbols: SymbolTable (unordered_map<string, Symbol>)
+ *     └── Symbol
+ *         ├── kind: LABEL or EQU
+ *         ├── sectionIndex: size_t
+ *         ├── statementIndex: size_t
+ *         ├── offset: uint64_t
+ *         ├── value: int64_t  (EQU only)
+ *         └── isGlobal: bool
+ * @endcode
+ *
+ * @section opcodes Opcode System
+ *
+ * Instructions are encoded using a declarative pattern table:
+ * - `OpcodePattern` — describes one encoding variant of an instruction
+ * - `OpcodeTable` — array of pattern lists indexed by `Opcode`
+ * - `OpcodeFactories` — helper structs for building patterns (`AddPatterns`, `MovPatterns`, ...)
+ * - `OperandConstraint` — describes allowed kinds, sizes, and exact registers per operand
+ *
+ * @section supported_instructions Supported Instructions
+ *
+ * The compiler supports the following x86-64 instruction categories.
+ * Each instruction may have multiple encoding forms depending on operand types and sizes.
+ *
+ * @subsection instr_data Data Movement
+ * | Instruction | Description |
+ * |-------------|-------------|
+ * | `MOV`  | Move data between registers, memory, and immediates |
+ * | `LEA`  | Load effective address |
+ * | `PUSH` | Push value onto stack |
+ * | `POP`  | Pop value from stack |
+ *
+ * @subsection instr_arith Arithmetic
+ * | Instruction | Description |
+ * |-------------|-------------|
+ * | `ADD`  | Integer addition |
+ * | `SUB`  | Integer subtraction |
+ * | `IMUL` | Signed multiplication |
+ * | `MUL`  | Unsigned multiplication |
+ * | `IDIV` | Signed division |
+ * | `DIV`  | Unsigned division |
+ * | `INC`  | Increment by 1 |
+ * | `DEC`  | Decrement by 1 |
+ * | `NEG`  | Two's complement negation |
+ *
+ * @subsection instr_logic Logic / Bitwise
+ * | Instruction | Description |
+ * |-------------|-------------|
+ * | `AND`  | Bitwise AND |
+ * | `OR`   | Bitwise OR |
+ * | `XOR`  | Bitwise exclusive OR |
+ * | `NOT`  | Bitwise NOT |
+ * | `SHL`  | Shift left logical |
+ * | `SHR`  | Shift right logical |
+ * | `SAR`  | Shift right arithmetic |
+ *
+ * @subsection instr_cmp Compare / Test
+ * | Instruction | Description |
+ * |-------------|-------------|
+ * | `CMP`  | Compare two operands (sets flags) |
+ * | `TEST` | Bitwise test (sets flags) |
+ *
+ * @subsection instr_flow Control Flow
+ * | Instruction | Description |
+ * |-------------|-------------|
+ * | `JMP`  | Unconditional jump |
+ * | `JE` / `JZ`  | Jump if equal / zero |
+ * | `JNE` / `JNZ` | Jump if not equal / not zero |
+ * | `JL`   | Jump if less (signed) |
+ * | `JLE`  | Jump if less or equal (signed) |
+ * | `JG`   | Jump if greater (signed) |
+ * | `JGE`  | Jump if greater or equal (signed) |
+ * | `CALL` | Call procedure |
+ * | `RET`  | Return from procedure |
+ *
+ * @subsection instr_stack Stack / Frame
+ * | Instruction | Description |
+ * |-------------|-------------|
+ * | `ENTER` | Create stack frame |
+ * | `LEAVE` | Destroy stack frame |
+ *
+ * @subsection instr_misc System / Misc
+ * | Instruction | Description |
+ * |-------------|-------------|
+ * | `NOP`     | No operation |
+ * | `SYSCALL` | Linux system call |
+ *
+ * @note
+ * Not all encoding forms may be implemented for every instruction.
+ * Patterns are added incrementally to `OpcodeTable` via factory structs
+ * (`AddPatterns`, `MovPatterns`, etc.). If no matching pattern is found,
+ * `InstructionEncoder` reports a `CompilerError` with stage `ENCODER`.
+ *
+ * @section supported_directives Supported Directives
+ *
+ * | Directive | Description |
+ * |-----------|-------------|
+ * | `section .text / .data / .bss` | Section declaration |
+ * | `global name` | Export symbol |
+ * | `name equ value` | Constant definition |
+ * | `db / dw / dd / dq` | Define initialized data |
+ * | `resb / resw / resd / resq` | Reserve uninitialized data |
+ * | `align N` | Align to N-byte boundary |
+ * | `times N` | Repeat next directive N times |
+ *
+ * @section error_handling Error Handling
+ *
+ * All stages use a unified `CompilerError` structure:
+ * @code
+ * struct CompilerError {
+ *   ErrorStage stage;   // LEXER, PARSER, GROUPER, ...
+ *   SourceSpan span;    // line, column, length
+ *   std::string message;
+ * };
+ * @endcode
+ *
+ * Errors are collected without throwing exceptions.
+ * Each stage exposes `hasErrors()` and `getErrors()`.
+ * The pipeline stops at the first stage that reports errors.
+ *
+ * @section example Example
+ *
+ * @code{.asm}
+ * section .data
+ *     msg db "Hello, World!", 0
+ *
+ * section .text
+ * global _start
+ * _start:
+ *     mov rax, 1          ; sys_write
+ *     mov rdi, 1          ; stdout
+ *     mov rsi, msg        ; buffer address
+ *     mov rdx, 13         ; length
+ *     syscall
+ *     mov rax, 60         ; sys_exit
+ *     xor rdi, rdi        ; exit code 0
+ *     syscall
+ * @endcode
  */
