@@ -10,53 +10,35 @@
 #include "common/OperandTypes.h"
 #include "common/Registers.h"
 
-// enum RegClassMask : uint8_t {
-//   RC_NONE  = 0,
-//   RC_GPR8  = 1 << 0,
-//   RC_GPR16 = 1 << 1,
-//   RC_GPR32 = 1 << 2,
-//   RC_GPR64 = 1 << 3,
-//
-//   RC_GPR_ANY = RC_GPR8 | RC_GPR16 | RC_GPR32 | RC_GPR64
-// };
-//
-// inline RegClassMask operator|(RegClassMask a, RegClassMask b) {
-//   return static_cast<RegClassMask>(
-//     static_cast<uint8_t>(a) | static_cast<uint8_t>(b)
-//   );
-// }
-
 /// @brief Bitmask representing allowed operand kinds
 enum OperandKindMask : uint8_t {
   OK_NONE = 0,
-  OK_REG = 1 << 0,   ///< Register Operand
-  OK_MEM = 1 << 1,   ///< Memory Operand
+  OK_REG = 1 << 0,   ///< Register operand
+  OK_MEM = 1 << 1,   ///< Memory operand
   OK_IMM = 1 << 2,   ///< Immediate value
-  OK_LABEL = 1 << 3  ///< Label (for jumps, call, memoty access...)
+  OK_LABEL = 1 << 3  ///< Label (for jumps, calls, memory access)
 };
 
-/// @brief Bitwise OR operator for OperandKindMask.
-inline OperandKindMask operator|(OperandKindMask a,
-                                 OperandKindMask b) {  // for OK_REG | OK_MEM
+/// @brief Bitwise OR operator for OperandKindMask
+inline OperandKindMask operator|(OperandKindMask a, OperandKindMask b) {
   return static_cast<OperandKindMask>(static_cast<uint8_t>(a) |
                                       static_cast<uint8_t>(b));
 }
 
-/// @brief Describes constraints for a single operand in an opcode pattern
+/// @brief Constraints for a single operand in an opcode pattern
 ///
-/// @details
 /// Defines what types of operands are allowed, their size restrictions,
-/// and optionally enforces a specific register
+/// and optionally enforces a specific register.
 struct OperandConstraint {
   OperandKindMask allowed =
-      OK_NONE;  ///< Allowed operand kinds (REG, MEM, IMM, etc.)
+      OK_NONE;  ///< Allowed operand kinds (REG, MEM, IMM, LABEL)
   OperandSize size =
-      OperandSize::ANY;  ///< Required operand size (e.g., B8, B32, ANY)
+      OperandSize::ANY;  ///< Required operand size (B8, B16, B32, B64, ANY)
   std::optional<Register>
-      exactReg;  ///< Specific register requirement (e.g., AL in ADD AL, imm8)
+      exactReg;  ///< Exact register requirement (e.g. AL for `ADD AL, imm8`)
 };
 
-/// @brief Specifies additional encoding required after base opcode bytes.
+/// @brief Additional encoding appended after base opcode bytes
 enum class ExtraEncoding {
   NONE,         ///< No extra encoding
   IMM8,         ///< 8-bit immediate
@@ -64,91 +46,96 @@ enum class ExtraEncoding {
   IMM16,        ///< 16-bit immediate
   IMM32,        ///< 32-bit immediate
   IMM64,        ///< 64-bit immediate
-  REL8,         ///< 8-bit relative offset
-  REL32         ///< 32-bit relative offset
+  REL8,         ///< 8-bit relative offset (short jump)
+  REL32         ///< 32-bit relative offset (near jump)
 };
-/// ---------------------------------------------------------------------------
-/// Encoding reference (for documentation purposes)
-/// ---------------------------------------------------------------------------
-///
-/// ModRM byte layout:
-///  7 6 | 5 4 3 | 2 1 0
-/// +----+-------+------+
-/// |MOD |  REG  |  RM  |
-/// +----+-------+------+
-///
-/// MOD  - addressing mode (register or memory)
-/// REG  - register operand or opcode extension (/0, /1, ...)
-/// RM   - register or memory operand
-///
-/// SIB byte layout:
-///  7 6 | 5 4 3 | 2 1 0
-/// +----+-------+------+
-/// |SCAL| INDEX | BASE |
-/// +----+-------+------+
-///
-/// SCALE - scaling factor (×1, ×2, ×4, ×8)
-/// INDEX - index register (or 100 = none)
-/// BASE  - base register
-///
-//  7 6 | 5 4 3 | 2 1 0
-// +----+-------+------+
-// |SCAL| INDEX | BASE |
-// +----+-------+------+
-// SCAL - scale (x1, x2, x4, x8)
-// INDEX - register or 100(mean no registers)
-// BASe - base register
-// SIB - using in memory operand
 
-/// @brief Describes full encoding pattern for an instruction opcode
+/// @brief Full encoding pattern for a single instruction form
 ///
-/// @details
-/// This structure is used by the assembler to:
-/// - match instruction operands against valid patterns
-/// - generate corresponding machine code
+/// Used by `InstructionEncoder` to match instruction operands and
+/// generate corresponding x86-64 machine code bytes.
 ///
-/// It includes:
-/// - opcode identifier
-/// - operand constraints
-/// - base opcode bytes
-/// - ModRM encoding rules
-/// - optional register encoding inside opcode
-/// - extra encoding (immediates, relative offsets)
-/// - operand size grouping rules
+/// @par ModRM byte layout
+/// @code
+///  7  6 | 5  4  3 | 2  1  0
+/// +-----+---------+---------+
+/// | MOD |   REG   |   RM    |
+/// +-----+---------+---------+
+///
+/// MOD — addressing mode:
+///   11 = register direct
+///   10 = memory + disp32
+///   01 = memory + disp8
+///   00 = memory (no displacement)
+///
+/// REG — register operand or opcode extension (/0, /1, ...)
+/// RM  — register or memory operand
+/// @endcode
+///
+/// @par SIB byte layout
+/// @code
+///  7  6 | 5  4  3 | 2  1  0
+/// +-----+---------+---------+
+/// | SS  |  INDEX  |  BASE   |
+/// +-----+---------+---------+
+///
+/// SS    — scale factor: 00=×1, 01=×2, 10=×4, 11=×8
+/// INDEX — index register (100 = no index)
+/// BASE  — base register
+/// @endcode
+///
+/// @par Example patterns
+/// @code
+/// // ADD r/m8, r8  → opcode 0x00, ModRM required
+/// OpcodePattern {
+///   baseBytes = { 0x00 },
+///   hasModRM  = true,
+///   extra     = NONE
+/// }
+///
+/// // MOV r64, imm64  → REX.W + B8+r + 8 bytes immediate
+/// OpcodePattern {
+///   baseBytes   = { 0xB8 },
+///   regInOpcode = true,
+///   extra       = IMM64
+/// }
+/// @endcode
 struct OpcodePattern {
-  Opcode opcode;  ///< Instruction opcode (e.g., MOV, ADD, LEA)
+  Opcode opcode;  ///< Instruction opcode (e.g. MOV, ADD, LEA)
 
-  /// @brief Constraints for each operand in order
+  /// @brief Constraints for each operand in order (left to right)
   std::vector<OperandConstraint> operands;
 
-  /// @brief Base opcode bytes (without ModRM / immediates)
-  /// Example: {0xB8}, {0x01}
+  /// @brief Base opcode bytes (without ModRM or immediates)
+  /// @example `{0x01}` for ADD, `{0x0F, 0x84}` for JE
   std::vector<uint8_t> baseBytes;
 
-  /// @brief Indicates whether a ModRM byte is required.
+  /// @brief Whether a ModRM byte must be emitted
   bool hasModRM = false;
 
-  /// @brief Fixed REG field value in ModRM (opcode extension like /0, /1,
-  /// etc.)
+  /// @brief Fixed REG field in ModRM — opcode extension (/0, /1, etc.)
+  /// @details Set when the REG field is not a register but an opcode extension.
+  /// For example, `ADD r/m, imm` uses `/0` (modrm_reg = 0).
+  /// If nullopt, REG field is taken from the register operand.
   std::optional<uint8_t> modrm_reg;
 
-  /// @brief If true, register index is encoded directly in opcode (e.g., B8 +
-  /// r)
+  /// @brief Whether the register index is encoded inside the opcode byte
+  /// @details Used for short forms like `MOV r64, imm64` (B8+rd)
+  /// and `PUSH r64` (50+rd).
   bool regInOpcode = false;
 
-  /// @brief Specifies additional encoding appended after base bytes
+  /// @brief Additional encoding emitted after base opcode bytes
   ExtraEncoding extra = ExtraEncoding::NONE;
 
-  /// @brief Groups of operands that must share the same size.
+  /// @brief Operand size groups — operands with the same group ID must match in
+  /// size
   ///
   /// @details
-  /// Each value represents a group ID. Operands with the same group ID
-  /// must have identical sizes.
-  ///
   /// Example:
-  ///   {0, 0} → both operands must have the same size
-  ///   {0, 1} → operands can have different sizes
-  ///
-  /// Value -1 means no size restriction.
+  /// @code
+  /// {0, 0}  → both operands must have the same size
+  /// {0, 1}  → operands can differ in size
+  /// @endcode
+  /// Value 0xFF means no size restriction for that operand.
   std::vector<uint8_t> operandSizeGroup;
 };
