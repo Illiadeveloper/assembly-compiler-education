@@ -2,6 +2,8 @@
 #include "encoder/InstructionEncoder.h"
 
 #include <cstdint>
+#include <iostream>
+#include <ostream>
 
 #include "common/OperandTypes.h"
 #include "opcodes/OpcodePattern.h"
@@ -55,7 +57,6 @@ const OpcodePattern* InstructionEncoder::matchPattern(
   const auto& patterns = OpcodeTable[static_cast<size_t>(instruction.opcode)];
 
   for (const auto& pattern : patterns) {
-    // количество операндов должно совпадать
     if (pattern.operands.size() != instruction.operands.size()) continue;
 
     bool ok = true;
@@ -73,7 +74,6 @@ const OpcodePattern* InstructionEncoder::matchPattern(
 
 bool InstructionEncoder::matchOperand(
     const Operand& operand, const OperandConstraint& constraint) const {
-  // проверяем kind
   OperandKindMask kindBit = OK_NONE;
   switch (operand.kind) {
     case OperandKind::REG:
@@ -92,18 +92,33 @@ bool InstructionEncoder::matchOperand(
 
   if (operand.isLabel() && (constraint.allowed & OK_IMM)) kindBit = OK_IMM;
 
+  if (operand.isImm() && constraint.size != OperandSize::ANY) {
+    int64_t val = operand.getImm();
+    switch (constraint.size) {
+      case OperandSize::B8:
+        if (val < -128 || val > 255) return false;
+        break;
+      case OperandSize::B16:
+        if (val < -32768 || val > 65535) return false;
+        break;
+      case OperandSize::B32:
+        if (val < INT32_MIN || val > UINT32_MAX) return false;
+        break;
+      default:
+        break;
+    }
+  }
+
   if (!(constraint.allowed & kindBit)) {
     // std::cout << "Not allowed... " << std::endl;
     // std::cout << (int)operand.kind << std::endl;
     return false;
   };
 
-  // проверяем size (ANY = любой)
   if (constraint.size != OperandSize::ANY && operand.size != OperandSize::ANY) {
     if (operand.size != constraint.size) return false;
   }
 
-  // проверяем exactReg если задан
   if (constraint.exactReg.has_value()) {
     if (!operand.isReg() || operand.getReg() != *constraint.exactReg)
       return false;
@@ -121,21 +136,38 @@ std::vector<uint8_t> InstructionEncoder::emitPattern(
     const Program& program, uint64_t baseVaddr) {
   std::vector<uint8_t> buffer;
 
-  // 1. REX prefix 
+  // for(auto& x : instruction.operands) {
+  //   std::cout << (int)x.size << " ";
+  // }
+  // std::cout << std::endl;
+  //
+  // if(pattern.opcode == Opcode::ADD) {
+  //   for(auto& x : pattern.baseBytes)
+  //   std::cout << +x << std::endl;
+  // }
+  // std::cout << "OPCODE: " << (int)pattern.opcode << "; OPERANDS: " <<
+  // pattern.operands.size() << std::endl;
+
+  // 1. REX prefix and support 16B reg
   bool need64 = false;
+  bool need16 = false;
   for (const auto& operand : instruction.operands) {
-    if (operand.isReg() &&
-        getRegisterInfo(operand.getReg()).size == OperandSize::B64) {
-      need64 = true;
-      break;
-    }
+    if (!operand.isReg()) continue;
+    auto size = getRegisterInfo(operand.getReg()).size;
+    // if (operand.isReg() &&
+    //     getRegisterInfo(operand.getReg()).size == OperandSize::B64)
+    if (size == OperandSize::B64) need64 = true;
+
+    if (size == OperandSize::B16) need16 = true;
   }
+
+  if (need16) buffer.push_back(0x66);
   if (need64) buffer.push_back(rexByte(true));
 
   // 2. Base opcode bytes
   for (uint8_t byte : pattern.baseBytes) buffer.push_back(byte);
 
-  // 3. regInOpcode 
+  // 3. regInOpcode
   if (pattern.regInOpcode) {
     for (const auto& operand : instruction.operands) {
       if (operand.isReg()) {
