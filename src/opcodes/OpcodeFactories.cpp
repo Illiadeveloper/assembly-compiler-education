@@ -210,3 +210,150 @@ OpcodePattern AddPatterns::rm_imm(OperandSize sz, uint8_t base, uint8_t modrm) {
       extra,
       {0, 1}};
 }
+
+/// ============================================================================
+/// SUB — Integer Subtraction
+/// ============================================================================
+
+OpcodePattern SubPatterns::rm_r(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::SUB,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_REG, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern SubPatterns::r_rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::SUB,
+      {{OK_REG, sz, std::nullopt}, {OK_REG | OK_MEM, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern SubPatterns::al_imm8(uint8_t base) {
+  return OpcodePattern{Opcode::SUB,
+                       {{OK_REG, OperandSize::B8, Register::AL},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern SubPatterns::rm_imm(OperandSize sz, uint8_t base, uint8_t modrm) {
+  ExtraEncoding extra = (sz == OperandSize::B8)    ? ExtraEncoding::IMM8
+                        : (sz == OperandSize::B16) ? ExtraEncoding::IMM16
+                                                   : ExtraEncoding::IMM32;
+  return OpcodePattern{
+      Opcode::SUB,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_IMM, sz, std::nullopt}},
+      {base},
+      true,
+      modrm,
+      false,
+      extra,
+      {0, 1}};
+}
+
+/// ============================================================================
+/// IMUL — Signed Multiplication
+/// ============================================================================
+
+OpcodePattern ImulPatterns::rm(OperandSize sz, uint8_t base) {
+  // One-operand form: IMUL r/m  (result in rDX:rAX)
+  return OpcodePattern{Opcode::IMUL, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},       true,
+                       uint8_t(5),  // /5
+                       false,        ExtraEncoding::NONE,
+                       {0}};
+}
+
+OpcodePattern ImulPatterns::r_rm(OperandSize sz) {
+  // Two-operand form: IMUL r, r/m  (0F AF /r)
+  return OpcodePattern{
+      Opcode::IMUL,
+      {{OK_REG, sz, std::nullopt}, {OK_REG | OK_MEM, sz, std::nullopt}},
+      {0x0F, 0xAF},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern ImulPatterns::r_rm_imm8(OperandSize sz) {
+  // Three-operand form with sign-extended imm8: IMUL r, r/m, imm8  (6B /r ib)
+  return OpcodePattern{Opcode::IMUL,
+                       {{OK_REG, sz, std::nullopt},
+                        {OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {0x6B},
+                       true,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM8_SIGNED,
+                       {0, 0, 2}};
+}
+
+OpcodePattern ImulPatterns::r_rm_imm(OperandSize sz) {
+  // Three-operand form: IMUL r, r/m, imm16/imm32  (69 /r iw/id)
+  ExtraEncoding extra =
+      (sz == OperandSize::B16) ? ExtraEncoding::IMM16 : ExtraEncoding::IMM32;
+  return OpcodePattern{Opcode::IMUL,
+                       {{OK_REG, sz, std::nullopt},
+                        {OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_IMM, sz, std::nullopt}},
+                       {0x69},
+                       true,
+                       std::nullopt,
+                       false,
+                       extra,
+                       {0, 0, 2}};
+}
+
+/// ============================================================================
+/// MUL — Unsigned Multiplication
+/// ============================================================================
+
+OpcodePattern MulPatterns::rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::MUL, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(4),  // /4
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+/// ============================================================================
+/// IDIV — Signed Division
+/// ============================================================================
+
+OpcodePattern IdivPatterns::rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::IDIV, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},       true,
+                       uint8_t(7),  // /7
+                       false,        ExtraEncoding::NONE,
+                       {0}};
+}
+
+/// ============================================================================
+/// DIV — Unsigned Division
+/// ============================================================================
+
+OpcodePattern DivPatterns::rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::DIV, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(6),  // /6
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}

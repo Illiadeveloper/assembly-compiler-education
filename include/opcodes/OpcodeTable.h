@@ -50,13 +50,13 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
           MovPatterns::r_rm(OperandSize::B32, 0x8B),
           MovPatterns::r_rm(OperandSize::B64, 0x8B),
 
-          // MOV r, imm  (B8+r форма)
+          // MOV r, imm  (B8+r form)
           MovPatterns::r_imm(OperandSize::B8, 0xB0),
           MovPatterns::r_imm(OperandSize::B16, 0xB8),
           MovPatterns::r_imm(OperandSize::B32, 0xB8),
           MovPatterns::r_imm(OperandSize::B64, 0xB8),
 
-          // MOV r/m, imm  (C6/C7 форма)
+          // MOV r/m, imm  (C6/C7 form)
           MovPatterns::rm_imm(OperandSize::B8, 0xC6),
           MovPatterns::rm_imm(OperandSize::B16, 0xC7),
           MovPatterns::rm_imm(OperandSize::B32, 0xC7),
@@ -116,7 +116,7 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
 
           AddPatterns::al_imm8(0x04),
 
-          AddPatterns::rm_imm(OperandSize::B8, 0x80, 0), 
+          AddPatterns::rm_imm(OperandSize::B8, 0x80, 0),
 
           AddPatterns::rm_imm(OperandSize::B16, 0x81,
                               0),  // 81 /0 — r/m16, imm16
@@ -124,6 +124,91 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
                               0),  // 81 /0 — r/m32, imm32
           AddPatterns::rm_imm(OperandSize::B64, 0x81,
                               0),  // 81 /0 — r/m64, imm32 (sign-extended)
+      };
+
+      /// ============================================================================
+      /// SUB — Integer Subtraction
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::SUB)] = {
+          // SUB r/m, r
+          SubPatterns::rm_r(OperandSize::B8, 0x28),
+          SubPatterns::rm_r(OperandSize::B16, 0x29),
+          SubPatterns::rm_r(OperandSize::B32, 0x29),
+          SubPatterns::rm_r(OperandSize::B64, 0x29),
+
+          // SUB r, r/m
+          SubPatterns::r_rm(OperandSize::B8, 0x2A),
+          SubPatterns::r_rm(OperandSize::B16, 0x2B),
+          SubPatterns::r_rm(OperandSize::B32, 0x2B),
+          SubPatterns::r_rm(OperandSize::B64, 0x2B),
+
+          // SUB AL, imm8  (shortform, no ModRM)
+          SubPatterns::al_imm8(0x2C),
+
+          // SUB r/m, imm  (80/81 /5)
+          SubPatterns::rm_imm(OperandSize::B8, 0x80, 5),
+          SubPatterns::rm_imm(OperandSize::B16, 0x81, 5),
+          SubPatterns::rm_imm(OperandSize::B32, 0x81, 5),
+          SubPatterns::rm_imm(OperandSize::B64, 0x81, 5),
+      };
+
+      /// ============================================================================
+      /// IMUL — Signed Multiplication
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::IMUL)] = {
+          // One-operand: IMUL r/m  →  F6 /5 / F7 /5
+          ImulPatterns::rm(OperandSize::B8, 0xF6),
+          ImulPatterns::rm(OperandSize::B16, 0xF7),
+          ImulPatterns::rm(OperandSize::B32, 0xF7),
+          ImulPatterns::rm(OperandSize::B64, 0xF7),
+
+          // Two-operand: IMUL r, r/m  →  0F AF /r
+          ImulPatterns::r_rm(OperandSize::B16),
+          ImulPatterns::r_rm(OperandSize::B32),
+          ImulPatterns::r_rm(OperandSize::B64),
+
+          // Three-operand (imm8 sign-extended): IMUL r, r/m, imm8  →  6B /r ib
+          ImulPatterns::r_rm_imm8(OperandSize::B16),
+          ImulPatterns::r_rm_imm8(OperandSize::B32),
+          ImulPatterns::r_rm_imm8(OperandSize::B64),
+
+          // Three-operand (imm16/imm32): IMUL r, r/m, imm  →  69 /r iw/id
+          ImulPatterns::r_rm_imm(OperandSize::B16),
+          ImulPatterns::r_rm_imm(OperandSize::B32),
+          ImulPatterns::r_rm_imm(OperandSize::B64),
+      };
+
+      /// ============================================================================
+      /// MUL — Unsigned Multiplication
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::MUL)] = {
+          // MUL r/m  →  F6 /4 / F7 /4
+          MulPatterns::rm(OperandSize::B8, 0xF6),
+          MulPatterns::rm(OperandSize::B16, 0xF7),
+          MulPatterns::rm(OperandSize::B32, 0xF7),
+          MulPatterns::rm(OperandSize::B64, 0xF7),
+      };
+
+      /// ============================================================================
+      /// IDIV — Signed Division
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::IDIV)] = {
+          // IDIV r/m  →  F6 /7 / F7 /7
+          IdivPatterns::rm(OperandSize::B8, 0xF6),
+          IdivPatterns::rm(OperandSize::B16, 0xF7),
+          IdivPatterns::rm(OperandSize::B32, 0xF7),
+          IdivPatterns::rm(OperandSize::B64, 0xF7),
+      };
+
+      /// ============================================================================
+      /// DIV — Unsigned Division
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::DIV)] = {
+          // DIV r/m  →  F6 /6 / F7 /6
+          DivPatterns::rm(OperandSize::B8, 0xF6),
+          DivPatterns::rm(OperandSize::B16, 0xF7),
+          DivPatterns::rm(OperandSize::B32, 0xF7),
+          DivPatterns::rm(OperandSize::B64, 0xF7),
       };
 
       /// ============================================================================
