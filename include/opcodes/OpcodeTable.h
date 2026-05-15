@@ -1,3 +1,4 @@
+///
 /// @file OpcodeTable.h
 /// @brief Encoding table of all opcodes
 #pragma once
@@ -33,18 +34,6 @@
 static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
     [] {
       std::array<std::vector<OpcodePattern>, opcode_count> table{};
-
-      /// ============================================================================
-      /// ADD — Integer Addition
-      /// ============================================================================
-      table[static_cast<size_t>(Opcode::ADD)] = {
-          AddPatterns::rm_r(OperandSize::B8, 0x00),
-          AddPatterns::rm_r(OperandSize::B16, 0x01),
-          AddPatterns::rm_r(OperandSize::B32, 0x01),
-          AddPatterns::r_rm(OperandSize::B8, 0x02),
-          AddPatterns::al_imm8(0x04),
-          AddPatterns::rm_imm(OperandSize::B8, 0x80, 0)};
-
       /// ============================================================================
       /// MOV — Move
       /// ============================================================================
@@ -72,6 +61,69 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
           MovPatterns::rm_imm(OperandSize::B16, 0xC7),
           MovPatterns::rm_imm(OperandSize::B32, 0xC7),
           MovPatterns::rm_imm(OperandSize::B64, 0xC7),
+      };
+
+      /// ============================================================================
+      /// LEA — Load Effective Address
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::LEA)] = {
+          LeaPatterns::r_m(OperandSize::B16, 0x8D),
+          LeaPatterns::r_m(OperandSize::B32, 0x8D),
+          LeaPatterns::r_m(OperandSize::B64, 0x8D),
+      };
+
+      /// ============================================================================
+      /// PUSH
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::PUSH)] = {
+          // 50+rd
+          PushPatterns::r(OperandSize::B16, 0x50),  // push r16
+          PushPatterns::r(OperandSize::B64, 0x50),  // push r64
+
+          // immediate
+          PushPatterns::imm8(0x6A),  // push imm8  (sign-extended)
+          // PushPatterns::imm16(0x68),   // push imm16  (sign-extended)
+          PushPatterns::imm32(0x68),  // push imm32 (sign-extended)
+
+          // FF /6
+          PushPatterns::rm(OperandSize::B16, 0xFF),  // push r/m16
+          PushPatterns::rm(OperandSize::B64, 0xFF),  // push r/m64
+      };
+
+      /// ============================================================================
+      /// POP
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::POP)] = {
+          PopPatterns::r(OperandSize::B64, 0x58),   // pop r64 → 58+rd
+          PopPatterns::r(OperandSize::B16, 0x58),   // pop r16 → 58+rd
+          PopPatterns::rm(OperandSize::B64, 0x8F),  // 8F /0
+          PopPatterns::rm(OperandSize::B16, 0x8F),  // 8F /0
+      };
+
+      /// ============================================================================
+      /// ADD — Integer Addition
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::ADD)] = {
+          AddPatterns::rm_r(OperandSize::B8, 0x00),
+          AddPatterns::rm_r(OperandSize::B16, 0x01),
+          AddPatterns::rm_r(OperandSize::B32, 0x01),
+          AddPatterns::rm_r(OperandSize::B64, 0x01),
+
+          AddPatterns::r_rm(OperandSize::B8, 0x02),
+          AddPatterns::r_rm(OperandSize::B16, 0x03),
+          AddPatterns::r_rm(OperandSize::B32, 0x03),
+          AddPatterns::r_rm(OperandSize::B64, 0x03),
+
+          AddPatterns::al_imm8(0x04),
+
+          AddPatterns::rm_imm(OperandSize::B8, 0x80, 0), 
+
+          AddPatterns::rm_imm(OperandSize::B16, 0x81,
+                              0),  // 81 /0 — r/m16, imm16
+          AddPatterns::rm_imm(OperandSize::B32, 0x81,
+                              0),  // 81 /0 — r/m32, imm32
+          AddPatterns::rm_imm(OperandSize::B64, 0x81,
+                              0),  // 81 /0 — r/m64, imm32 (sign-extended)
       };
 
       /// ============================================================================

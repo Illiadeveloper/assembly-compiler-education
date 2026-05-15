@@ -11,6 +11,57 @@
 #pragma once
 #include "OpcodePattern.h"
 
+// =================================================
+// Data movement
+// =================================================
+
+/// @brief Factory for MOV instruction patterns
+struct MovPatterns {
+  /// @brief MOV r/m, r — memory/register from register
+  static OpcodePattern rm_r(OperandSize sz, uint8_t base);
+
+  /// @brief MOV r, r/m — register from memory/register
+  static OpcodePattern r_rm(OperandSize sz, uint8_t base);
+
+  /// @brief MOV r, imm — register from immediate (B8+r form)
+  static OpcodePattern r_imm(OperandSize sz, uint8_t base);
+
+  /// @brief MOV r/m, imm — memory/register from immediate
+  static OpcodePattern rm_imm(OperandSize sz, uint8_t base);
+};
+
+/// @brief Factory for LEA instruction patterns
+struct LeaPatterns {
+  /// @brief LEA r, m — load effective address
+  static OpcodePattern r_m(OperandSize sz, uint8_t base);
+};
+
+/// @brief Factory for PUSH instruction patterns
+struct PushPatterns {
+  /// @brief PUSH r — push register
+  static OpcodePattern r(OperandSize sz, uint8_t base);
+  /// @brief PUSH imm8 — push 8-bit immediate
+  static OpcodePattern imm8(uint8_t base);
+  /// @brief PUSH imm16 - push 16-bit immediate
+  // static OpcodePattern imm16(uint8_t base);
+  /// @brief PUSH imm32 — push 32-bit immediate
+  static OpcodePattern imm32(uint8_t base);
+  /// @brief PUSH r/m - push register/memory
+  static OpcodePattern rm(OperandSize sz, uint8_t base);
+};
+
+/// @brief Factory for POP instruction patterns
+struct PopPatterns {
+  /// @brief POP r — pop into register
+  static OpcodePattern r(OperandSize sz, uint8_t base);
+  /// @brief POP r/m — pop into register/memory
+  static OpcodePattern rm(OperandSize sz, uint8_t base);
+};
+
+// ================================================= 
+// Arithmetic
+// =================================================
+
 /// @brief Factory for ADD instruction patterns
 struct AddPatterns {
   /// @brief ADD r/m, r — register/memory to register variant
@@ -24,19 +75,4 @@ struct AddPatterns {
 
   /// @brief ADD r/m, imm — register/memory with immediate
   static OpcodePattern rm_imm(OperandSize sz, uint8_t base, uint8_t modrm);
-};
-
-/// @brief Factory for MOV instruction patterns
-struct MovPatterns {
-  /// @brief MOV r/m, r — memory/register from register
-  static OpcodePattern rm_r(OperandSize sz, uint8_t base);
-
-  /// @brief MOV r, r/m — register from memory/register  
-  static OpcodePattern r_rm(OperandSize sz, uint8_t base);
-
-  /// @brief MOV r, imm — register from immediate (B8+r form)
-  static OpcodePattern r_imm(OperandSize sz, uint8_t base);
-
-  /// @brief MOV r/m, imm — memory/register from immediate
-  static OpcodePattern rm_imm(OperandSize sz, uint8_t base);
 };
