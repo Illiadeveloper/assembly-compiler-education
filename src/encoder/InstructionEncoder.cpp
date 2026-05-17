@@ -236,7 +236,7 @@ std::vector<uint8_t> InstructionEncoder::emitPattern(
         break;
 
       case ExtraEncoding::IMM64:
-        emitImm64(buffer, static_cast<uint32_t>(resolveImm(*immOp, program)));
+        emitImm64(buffer, static_cast<uint64_t>(resolveImm(*immOp, program)));
         break;
 
       case ExtraEncoding::REL8: {
