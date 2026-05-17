@@ -72,6 +72,12 @@ struct MovPatterns {
 struct LeaPatterns {
   /// @brief LEA r, m — compute and load effective address into register
   static OpcodePattern r_m(OperandSize sz, uint8_t base);
+
+  /// @brief LEA r, label — load RIP-relative address of a label (0x8D, mod=00
+  /// rm=101)
+  /// @note Encodes as LEA r64, [RIP + rel32]. The assembler must emit a
+  ///       ModRM byte with mod=00, rm=101 and a 32-bit RIP-relative offset.
+  static OpcodePattern r_label(OperandSize sz);
 };
 
 /// @brief Factory for PUSH instruction patterns
@@ -327,6 +333,10 @@ struct NegPatterns {
   static OpcodePattern rm(OperandSize sz, uint8_t base);
 };
 
+// =============================================================================
+// Logic / bitwise
+// =============================================================================
+
 /// @brief Factory for AND instruction patterns
 ///
 /// @details Performs a bitwise AND of source and destination, stores the
@@ -446,7 +456,7 @@ struct NotPatterns {
   /// @brief NOT r/m — one's complement negate register or memory
   static OpcodePattern rm(OperandSize sz, uint8_t base);
 };
- 
+
 /// @brief Factory for SHL instruction patterns
 ///
 /// @details Shifts the destination left by the given count, filling the
@@ -470,14 +480,14 @@ struct NotPatterns {
 struct ShlPatterns {
   /// @brief SHL r/m, 1 — shift left by implicit 1 (0xD0/D1 /4)
   static OpcodePattern rm_1(OperandSize sz, uint8_t base);
- 
+
   /// @brief SHL r/m, imm8 — shift left by immediate count (0xC0/C1 /4)
   static OpcodePattern rm_imm8(OperandSize sz, uint8_t base);
- 
+
   /// @brief SHL r/m, CL — shift left by count in CL (0xD2/D3 /4)
   static OpcodePattern rm_cl(OperandSize sz, uint8_t base);
 };
- 
+
 /// @brief Factory for SHR instruction patterns
 ///
 /// @details Logical shift right — shifts the destination right by the given
@@ -502,14 +512,14 @@ struct ShlPatterns {
 struct ShrPatterns {
   /// @brief SHR r/m, 1 — logical shift right by implicit 1 (0xD0/D1 /5)
   static OpcodePattern rm_1(OperandSize sz, uint8_t base);
- 
+
   /// @brief SHR r/m, imm8 — logical shift right by immediate count (0xC0/C1 /5)
   static OpcodePattern rm_imm8(OperandSize sz, uint8_t base);
- 
+
   /// @brief SHR r/m, CL — logical shift right by count in CL (0xD2/D3 /5)
   static OpcodePattern rm_cl(OperandSize sz, uint8_t base);
 };
- 
+
 /// @brief Factory for SAR instruction patterns
 ///
 /// @details Arithmetic shift right — shifts the destination right by the
@@ -535,13 +545,18 @@ struct ShrPatterns {
 struct SarPatterns {
   /// @brief SAR r/m, 1 — arithmetic shift right by implicit 1 (0xD0/D1 /7)
   static OpcodePattern rm_1(OperandSize sz, uint8_t base);
- 
-  /// @brief SAR r/m, imm8 — arithmetic shift right by immediate count (0xC0/C1 /7)
+
+  /// @brief SAR r/m, imm8 — arithmetic shift right by immediate count (0xC0/C1
+  /// /7)
   static OpcodePattern rm_imm8(OperandSize sz, uint8_t base);
- 
+
   /// @brief SAR r/m, CL — arithmetic shift right by count in CL (0xD2/D3 /7)
   static OpcodePattern rm_cl(OperandSize sz, uint8_t base);
 };
+
+// =============================================================================
+// Compare / test
+// =============================================================================
 
 /// @brief Factory for CMP instruction patterns
 ///
@@ -568,18 +583,18 @@ struct SarPatterns {
 struct CmpPatterns {
   /// @brief CMP r/m, r — compare register against register or memory
   static OpcodePattern rm_r(OperandSize sz, uint8_t base);
- 
+
   /// @brief CMP r, r/m — compare register or memory against register
   static OpcodePattern r_rm(OperandSize sz, uint8_t base);
- 
+
   /// @brief CMP AL, imm8 — accumulator shortform, no ModRM (0x3C)
   static OpcodePattern al_imm8(uint8_t base);
- 
+
   /// @brief CMP r/m, imm — compare immediate against register or memory
   /// @param modrm  Fixed REG field (/7 for CMP)
   static OpcodePattern rm_imm(OperandSize sz, uint8_t base, uint8_t modrm);
 };
- 
+
 /// @brief Factory for TEST instruction patterns
 ///
 /// @details Performs a bitwise AND of the two operands and discards the
@@ -601,11 +616,100 @@ struct CmpPatterns {
 struct TestPatterns {
   /// @brief TEST r/m, r — bitwise AND to set flags, result discarded
   static OpcodePattern rm_r(OperandSize sz, uint8_t base);
- 
+
   /// @brief TEST AL, imm8 — accumulator shortform, no ModRM (0xA8)
   static OpcodePattern al_imm8(uint8_t base);
- 
-  /// @brief TEST r/m, imm — bitwise AND immediate to set flags, result discarded
+
+  /// @brief TEST r/m, imm — bitwise AND immediate to set flags, result
+  /// discarded
   /// @param modrm  Fixed REG field (/0 for TEST)
   static OpcodePattern rm_imm(OperandSize sz, uint8_t base, uint8_t modrm);
+};
+
+// =============================================================================
+// Control flow
+// =============================================================================
+
+/// @brief Generic factory for conditional jump instructions (Jcc)
+///
+/// @details All conditional jumps share exactly the same structure —
+/// one label/offset operand, no ModRM, only the opcode byte differs.
+/// This single factory handles all of them: JE, JNE, JL, JLE, JG, JGE.
+///
+/// Encoding reference (short forms):
+///   JE  / JZ  rel8  → 0x74  cb
+///   JNE / JNZ rel8  → 0x75  cb
+///   JL  / JNGE rel8 → 0x7C  cb
+///   JLE / JNG  rel8 → 0x7E  cb
+///   JG  / JNLE rel8 → 0x7F  cb
+///   JGE / JNL  rel8 → 0x7D  cb
+///
+/// Encoding reference (near forms, 0x0F escape):
+///   JE  / JZ  rel32 → 0x0F 0x84  cd
+///   JNE / JNZ rel32 → 0x0F 0x85  cd
+///   JL  / JNGE rel32→ 0x0F 0x8C  cd
+///   JLE / JNG  rel32→ 0x0F 0x8E  cd
+///   JG  / JNLE rel32→ 0x0F 0x8F  cd
+///   JGE / JNL  rel32→ 0x0F 0x8D  cd
+struct JccPatterns {
+  /// @brief Jcc rel8 — short jump with 8-bit signed offset
+  static OpcodePattern rel8(Opcode op, uint8_t base);
+
+  /// @brief Jcc rel32 — near jump with 32-bit signed offset (0x0F escape)
+  static OpcodePattern rel32(Opcode op, uint8_t base);
+};
+
+/// @brief Factory for JMP instruction patterns
+///
+/// @details Unconditional jump. Transfers control to the target address.
+/// Unlike conditional jumps, JMP also supports indirect forms —
+/// jumping to an address stored in a register or memory operand.
+///
+/// Encoding reference:
+///   JMP rel8       → 0xEB  cb        short jump, 8-bit signed offset
+///   JMP rel32      → 0xE9  cd        near jump, 32-bit signed offset
+///   JMP r/m64      → 0xFF  /4        indirect jump via register or memory
+struct JmpPatterns {
+  /// @brief JMP rel8 — short unconditional jump (0xEB)
+  static OpcodePattern rel8();
+
+  /// @brief JMP rel32 — near unconditional jump (0xE9)
+  static OpcodePattern rel32();
+
+  /// @brief JMP r/m64 — indirect jump through register or memory (0xFF /4)
+  static OpcodePattern rm64();
+};
+
+/// @brief Factory for CALL instruction patterns
+///
+/// @details Pushes the return address (next instruction) onto the stack,
+/// then transfers control to the target. In 64-bit mode the return address
+/// is always 64 bits.
+///
+/// Encoding reference:
+///   CALL rel32  → 0xE8  cd     near call, 32-bit signed offset
+///   CALL r/m64  → 0xFF  /2     indirect call via register or memory
+struct CallPatterns {
+  /// @brief CALL rel32 — near call with 32-bit signed offset (0xE8)
+  static OpcodePattern rel32();
+
+  /// @brief CALL r/m64 — indirect call through register or memory (0xFF /2)
+  static OpcodePattern rm64();
+};
+
+/// @brief Factory for RET instruction patterns
+///
+/// @details Pops the return address from the stack and transfers control
+/// to it. Optionally pops additional bytes from the stack after the return
+/// address (used to clean up callee-cleaned calling conventions).
+///
+/// Encoding reference:
+///   RET       → 0xC3        near return, no stack adjustment
+///   RET imm16 → 0xC2  iw   near return, pops imm16 extra bytes from stack
+struct RetPatterns {
+  /// @brief RET — near return with no stack adjustment (0xC3)
+  static OpcodePattern ret();
+
+  /// @brief RET imm16 — near return, pop imm16 extra bytes after return address
+  static OpcodePattern ret_imm16();
 };

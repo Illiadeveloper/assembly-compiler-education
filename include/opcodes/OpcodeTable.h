@@ -70,6 +70,10 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
           LeaPatterns::r_m(OperandSize::B16, 0x8D),
           LeaPatterns::r_m(OperandSize::B32, 0x8D),
           LeaPatterns::r_m(OperandSize::B64, 0x8D),
+
+          // LEA r, label — RIP-relative address of label
+          LeaPatterns::r_label(OperandSize::B32),
+          LeaPatterns::r_label(OperandSize::B64),
       };
 
       /// ============================================================================
@@ -446,6 +450,79 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
           TestPatterns::rm_imm(OperandSize::B16, 0xF7, 0),
           TestPatterns::rm_imm(OperandSize::B32, 0xF7, 0),
           TestPatterns::rm_imm(OperandSize::B64, 0xF7, 0),
+      };
+
+      /// ============================================================================
+      /// JMP — Unconditional Jump
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::JMP)] = {
+          JmpPatterns::rel8(),   // 0xEB  cb
+          JmpPatterns::rel32(),  // 0xE9  cd
+          JmpPatterns::rm64(),   // 0xFF /4
+      };
+
+      /// ============================================================================
+      /// JE — Jump if Equal (ZF=1)
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::JE)] = {
+          JccPatterns::rel8(Opcode::JE, 0x74),   // 0x74      cb
+          JccPatterns::rel32(Opcode::JE, 0x84),  // 0x0F 0x84 cd
+      };
+
+      /// ============================================================================
+      /// JNE — Jump if Not Equal (ZF=0)
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::JNE)] = {
+          JccPatterns::rel8(Opcode::JNE, 0x75),   // 0x75      cb
+          JccPatterns::rel32(Opcode::JNE, 0x85),  // 0x0F 0x85 cd
+      };
+
+      /// ============================================================================
+      /// JL — Jump if Less (SF≠OF)
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::JL)] = {
+          JccPatterns::rel8(Opcode::JL, 0x7C),   // 0x7C      cb
+          JccPatterns::rel32(Opcode::JL, 0x8C),  // 0x0F 0x8C cd
+      };
+
+      /// ============================================================================
+      /// JLE — Jump if Less or Equal (ZF=1 or SF≠OF)
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::JLE)] = {
+          JccPatterns::rel8(Opcode::JLE, 0x7E),   // 0x7E      cb
+          JccPatterns::rel32(Opcode::JLE, 0x8E),  // 0x0F 0x8E cd
+      };
+
+      /// ============================================================================
+      /// JG — Jump if Greater (ZF=0 and SF=OF)
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::JG)] = {
+          JccPatterns::rel8(Opcode::JG, 0x7F),   // 0x7F      cb
+          JccPatterns::rel32(Opcode::JG, 0x8F),  // 0x0F 0x8F cd
+      };
+
+      /// ============================================================================
+      /// JGE — Jump if Greater or Equal (SF=OF)
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::JGE)] = {
+          JccPatterns::rel8(Opcode::JGE, 0x7D),   // 0x7D      cb
+          JccPatterns::rel32(Opcode::JGE, 0x8D),  // 0x0F 0x8D cd
+      };
+
+      /// ============================================================================
+      /// CALL — Call Procedure
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::CALL)] = {
+          CallPatterns::rel32(),  // 0xE8  cd
+          CallPatterns::rm64(),   // 0xFF /2
+      };
+
+      /// ============================================================================
+      /// RET — Return from Procedure
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::RET)] = {
+          RetPatterns::ret(),        // 0xC3
+          RetPatterns::ret_imm16(),  // 0xC2  iw
       };
 
       /// ============================================================================

@@ -75,6 +75,18 @@ OpcodePattern LeaPatterns::r_m(OperandSize sz, uint8_t base) {
       {0, 1}};
 }
 
+OpcodePattern LeaPatterns::r_label(OperandSize sz) {
+  return OpcodePattern{
+      Opcode::LEA,
+      {{OK_REG, sz, std::nullopt}, {OK_LABEL, OperandSize::ANY, std::nullopt}},
+      {0x8D},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::REL32,
+      {0, 1}};
+}
+
 /// ============================================================================
 /// PUSH
 /// ============================================================================
@@ -778,4 +790,111 @@ OpcodePattern TestPatterns::rm_imm(OperandSize sz, uint8_t base,
       false,
       extra,
       {0, 1}};
+}
+
+/// ============================================================================
+/// Jcc — Conditional Jumps (generic factory)
+/// ============================================================================
+
+OpcodePattern JccPatterns::rel8(Opcode op, uint8_t base) {
+  return OpcodePattern{op,
+                       {{OK_LABEL, OperandSize::ANY, std::nullopt}},
+                       {base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::REL8,
+                       {0}};
+}
+
+OpcodePattern JccPatterns::rel32(Opcode op, uint8_t base) {
+  // Near Jcc uses a 0x0F escape prefix followed by the condition byte
+  return OpcodePattern{op,
+                       {{OK_LABEL, OperandSize::ANY, std::nullopt}},
+                       {0x0F, base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::REL32,
+                       {0}};
+}
+
+/// ============================================================================
+/// JMP — Unconditional Jump
+/// ============================================================================
+
+OpcodePattern JmpPatterns::rel8() {
+  return OpcodePattern{Opcode::JMP,
+                       {{OK_LABEL, OperandSize::ANY, std::nullopt}},
+                       {0xEB},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::REL8,
+                       {0}};
+}
+
+OpcodePattern JmpPatterns::rel32() {
+  return OpcodePattern{Opcode::JMP,
+                       {{OK_LABEL, OperandSize::ANY, std::nullopt}},
+                       {0xE9},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::REL32,
+                       {0}};
+}
+
+OpcodePattern JmpPatterns::rm64() {
+  return OpcodePattern{
+      Opcode::JMP, {{OK_REG | OK_MEM, OperandSize::B64, std::nullopt}},
+      {0xFF},      true,
+      uint8_t(4),  // /4
+      false,       ExtraEncoding::NONE,
+      {0}};
+}
+
+/// ============================================================================
+/// CALL — Call Procedure
+/// ============================================================================
+
+OpcodePattern CallPatterns::rel32() {
+  return OpcodePattern{Opcode::CALL,
+                       {{OK_LABEL, OperandSize::ANY, std::nullopt}},
+                       {0xE8},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::REL32,
+                       {0}};
+}
+
+OpcodePattern CallPatterns::rm64() {
+  return OpcodePattern{
+      Opcode::CALL, {{OK_REG | OK_MEM, OperandSize::B64, std::nullopt}},
+      {0xFF},       true,
+      uint8_t(2),  // /2
+      false,        ExtraEncoding::NONE,
+      {0}};
+}
+
+/// ============================================================================
+/// RET — Return from Procedure
+/// ============================================================================
+
+OpcodePattern RetPatterns::ret() {
+  return OpcodePattern{
+      Opcode::RET, {},  // no operands
+      {0xC3},      false, std::nullopt, false, ExtraEncoding::NONE, {}};
+}
+
+OpcodePattern RetPatterns::ret_imm16() {
+  return OpcodePattern{Opcode::RET,
+                       {{OK_IMM, OperandSize::B16, std::nullopt}},
+                       {0xC2},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM16,
+                       {0}};
 }
