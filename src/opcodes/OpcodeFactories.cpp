@@ -357,3 +357,425 @@ OpcodePattern DivPatterns::rm(OperandSize sz, uint8_t base) {
                        false,       ExtraEncoding::NONE,
                        {0}};
 }
+
+/// ============================================================================
+/// INC — Increment by 1
+/// ============================================================================
+
+OpcodePattern IncPatterns::rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::INC, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(0),  // /0
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+/// ============================================================================
+/// DEC — Decrement by 1
+/// ============================================================================
+
+OpcodePattern DecPatterns::rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::DEC, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(1),  // /1
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+/// ============================================================================
+/// NEG — Two's Complement Negation
+/// ============================================================================
+
+OpcodePattern NegPatterns::rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::NEG, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(3),  // /3
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+/// ============================================================================
+/// AND — Bitwise AND
+/// ============================================================================
+
+OpcodePattern AndPatterns::rm_r(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::AND,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_REG, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern AndPatterns::r_rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::AND,
+      {{OK_REG, sz, std::nullopt}, {OK_REG | OK_MEM, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern AndPatterns::al_imm8(uint8_t base) {
+  return OpcodePattern{Opcode::AND,
+                       {{OK_REG, OperandSize::B8, Register::AL},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern AndPatterns::rm_imm(OperandSize sz, uint8_t base, uint8_t modrm) {
+  ExtraEncoding extra = (sz == OperandSize::B8)    ? ExtraEncoding::IMM8
+                        : (sz == OperandSize::B16) ? ExtraEncoding::IMM16
+                                                   : ExtraEncoding::IMM32;
+  return OpcodePattern{
+      Opcode::AND,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_IMM, sz, std::nullopt}},
+      {base},
+      true,
+      modrm,
+      false,
+      extra,
+      {0, 1}};
+}
+
+/// ============================================================================
+/// OR — Bitwise OR
+/// ============================================================================
+
+OpcodePattern OrPatterns::rm_r(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::OR,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_REG, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern OrPatterns::r_rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::OR,
+      {{OK_REG, sz, std::nullopt}, {OK_REG | OK_MEM, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern OrPatterns::al_imm8(uint8_t base) {
+  return OpcodePattern{Opcode::OR,
+                       {{OK_REG, OperandSize::B8, Register::AL},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern OrPatterns::rm_imm(OperandSize sz, uint8_t base, uint8_t modrm) {
+  ExtraEncoding extra = (sz == OperandSize::B8)    ? ExtraEncoding::IMM8
+                        : (sz == OperandSize::B16) ? ExtraEncoding::IMM16
+                                                   : ExtraEncoding::IMM32;
+  return OpcodePattern{
+      Opcode::OR,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_IMM, sz, std::nullopt}},
+      {base},
+      true,
+      modrm,
+      false,
+      extra,
+      {0, 1}};
+}
+
+/// ============================================================================
+/// XOR — Bitwise XOR
+/// ============================================================================
+
+OpcodePattern XorPatterns::rm_r(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::XOR,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_REG, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern XorPatterns::r_rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::XOR,
+      {{OK_REG, sz, std::nullopt}, {OK_REG | OK_MEM, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern XorPatterns::al_imm8(uint8_t base) {
+  return OpcodePattern{Opcode::XOR,
+                       {{OK_REG, OperandSize::B8, Register::AL},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern XorPatterns::rm_imm(OperandSize sz, uint8_t base, uint8_t modrm) {
+  ExtraEncoding extra = (sz == OperandSize::B8)    ? ExtraEncoding::IMM8
+                        : (sz == OperandSize::B16) ? ExtraEncoding::IMM16
+                                                   : ExtraEncoding::IMM32;
+  return OpcodePattern{
+      Opcode::XOR,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_IMM, sz, std::nullopt}},
+      {base},
+      true,
+      modrm,
+      false,
+      extra,
+      {0, 1}};
+}
+
+/// ============================================================================
+/// NOT — Bitwise One's Complement
+/// ============================================================================
+
+OpcodePattern NotPatterns::rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::NOT, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(2),  // /2
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+/// ============================================================================
+/// SHL — Shift Left
+/// ============================================================================
+
+OpcodePattern ShlPatterns::rm_1(OperandSize sz, uint8_t base) {
+  // Implicit count of 1 — no immediate encoded, shortest form
+  return OpcodePattern{Opcode::SHL, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(4),  // /4
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+OpcodePattern ShlPatterns::rm_imm8(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::SHL,
+                       {{OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       true,
+                       uint8_t(4),  // /4
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern ShlPatterns::rm_cl(OperandSize sz, uint8_t base) {
+  // Count comes from CL — exactReg enforces that no other register is accepted
+  return OpcodePattern{Opcode::SHL,
+                       {{OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_REG, OperandSize::B8, Register::CL}},
+                       {base},
+                       true,
+                       uint8_t(4),  // /4
+                       false,
+                       ExtraEncoding::NONE,
+                       {0, 1}};
+}
+
+/// ============================================================================
+/// SHR — Logical Shift Right
+/// ============================================================================
+
+OpcodePattern ShrPatterns::rm_1(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::SHR, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(5),  // /5
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+OpcodePattern ShrPatterns::rm_imm8(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::SHR,
+                       {{OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       true,
+                       uint8_t(5),  // /5
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern ShrPatterns::rm_cl(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::SHR,
+                       {{OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_REG, OperandSize::B8, Register::CL}},
+                       {base},
+                       true,
+                       uint8_t(5),  // /5
+                       false,
+                       ExtraEncoding::NONE,
+                       {0, 1}};
+}
+
+/// ============================================================================
+/// SAR — Arithmetic Shift Right
+/// ============================================================================
+
+OpcodePattern SarPatterns::rm_1(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::SAR, {{OK_REG | OK_MEM, sz, std::nullopt}},
+                       {base},      true,
+                       uint8_t(7),  // /7
+                       false,       ExtraEncoding::NONE,
+                       {0}};
+}
+
+OpcodePattern SarPatterns::rm_imm8(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::SAR,
+                       {{OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       true,
+                       uint8_t(7),  // /7
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern SarPatterns::rm_cl(OperandSize sz, uint8_t base) {
+  return OpcodePattern{Opcode::SAR,
+                       {{OK_REG | OK_MEM, sz, std::nullopt},
+                        {OK_REG, OperandSize::B8, Register::CL}},
+                       {base},
+                       true,
+                       uint8_t(7),  // /7
+                       false,
+                       ExtraEncoding::NONE,
+                       {0, 1}};
+}
+
+/// ============================================================================
+/// CMP — Compare (SUB without storing result)
+/// ============================================================================
+
+OpcodePattern CmpPatterns::rm_r(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::CMP,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_REG, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern CmpPatterns::r_rm(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::CMP,
+      {{OK_REG, sz, std::nullopt}, {OK_REG | OK_MEM, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern CmpPatterns::al_imm8(uint8_t base) {
+  return OpcodePattern{Opcode::CMP,
+                       {{OK_REG, OperandSize::B8, Register::AL},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern CmpPatterns::rm_imm(OperandSize sz, uint8_t base, uint8_t modrm) {
+  ExtraEncoding extra = (sz == OperandSize::B8)    ? ExtraEncoding::IMM8
+                        : (sz == OperandSize::B16) ? ExtraEncoding::IMM16
+                                                   : ExtraEncoding::IMM32;
+  return OpcodePattern{
+      Opcode::CMP,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_IMM, sz, std::nullopt}},
+      {base},
+      true,
+      modrm,
+      false,
+      extra,
+      {0, 1}};
+}
+
+/// ============================================================================
+/// TEST — Bitwise AND without storing result
+/// ============================================================================
+
+OpcodePattern TestPatterns::rm_r(OperandSize sz, uint8_t base) {
+  return OpcodePattern{
+      Opcode::TEST,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_REG, sz, std::nullopt}},
+      {base},
+      true,
+      std::nullopt,
+      false,
+      ExtraEncoding::NONE,
+      {0, 0}};
+}
+
+OpcodePattern TestPatterns::al_imm8(uint8_t base) {
+  return OpcodePattern{Opcode::TEST,
+                       {{OK_REG, OperandSize::B8, Register::AL},
+                        {OK_IMM, OperandSize::B8, std::nullopt}},
+                       {base},
+                       false,
+                       std::nullopt,
+                       false,
+                       ExtraEncoding::IMM8,
+                       {0, 1}};
+}
+
+OpcodePattern TestPatterns::rm_imm(OperandSize sz, uint8_t base,
+                                   uint8_t modrm) {
+  ExtraEncoding extra = (sz == OperandSize::B8)    ? ExtraEncoding::IMM8
+                        : (sz == OperandSize::B16) ? ExtraEncoding::IMM16
+                                                   : ExtraEncoding::IMM32;
+  return OpcodePattern{
+      Opcode::TEST,
+      {{OK_REG | OK_MEM, sz, std::nullopt}, {OK_IMM, sz, std::nullopt}},
+      {base},
+      true,
+      modrm,
+      false,
+      extra,
+      {0, 1}};
+}
