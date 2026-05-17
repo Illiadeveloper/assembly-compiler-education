@@ -212,6 +212,243 @@ static const std::array<std::vector<OpcodePattern>, opcode_count> OpcodeTable =
       };
 
       /// ============================================================================
+      /// INC — Increment by 1
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::INC)] = {
+          // INC r/m  →  FE /0 / FF /0
+          IncPatterns::rm(OperandSize::B8, 0xFE),
+          IncPatterns::rm(OperandSize::B16, 0xFF),
+          IncPatterns::rm(OperandSize::B32, 0xFF),
+          IncPatterns::rm(OperandSize::B64, 0xFF),
+      };
+
+      /// ============================================================================
+      /// DEC — Decrement by 1
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::DEC)] = {
+          // DEC r/m  →  FE /1 / FF /1
+          DecPatterns::rm(OperandSize::B8, 0xFE),
+          DecPatterns::rm(OperandSize::B16, 0xFF),
+          DecPatterns::rm(OperandSize::B32, 0xFF),
+          DecPatterns::rm(OperandSize::B64, 0xFF),
+      };
+
+      /// ============================================================================
+      /// NEG — Two's Complement Negation
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::NEG)] = {
+          // NEG r/m  →  F6 /3 / F7 /3
+          NegPatterns::rm(OperandSize::B8, 0xF6),
+          NegPatterns::rm(OperandSize::B16, 0xF7),
+          NegPatterns::rm(OperandSize::B32, 0xF7),
+          NegPatterns::rm(OperandSize::B64, 0xF7),
+      };
+
+      /// ============================================================================
+      /// AND — Bitwise AND
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::AND)] = {
+          // AND r/m, r
+          AndPatterns::rm_r(OperandSize::B8, 0x20),
+          AndPatterns::rm_r(OperandSize::B16, 0x21),
+          AndPatterns::rm_r(OperandSize::B32, 0x21),
+          AndPatterns::rm_r(OperandSize::B64, 0x21),
+
+          // AND r, r/m
+          AndPatterns::r_rm(OperandSize::B8, 0x22),
+          AndPatterns::r_rm(OperandSize::B16, 0x23),
+          AndPatterns::r_rm(OperandSize::B32, 0x23),
+          AndPatterns::r_rm(OperandSize::B64, 0x23),
+
+          // AND AL, imm8  (shortform 0x24)
+          AndPatterns::al_imm8(0x24),
+
+          // AND r/m, imm  (0x80/0x81 /4)
+          AndPatterns::rm_imm(OperandSize::B8, 0x80, 4),
+          AndPatterns::rm_imm(OperandSize::B16, 0x81, 4),
+          AndPatterns::rm_imm(OperandSize::B32, 0x81, 4),
+          AndPatterns::rm_imm(OperandSize::B64, 0x81, 4),
+      };
+
+      /// ============================================================================
+      /// OR — Bitwise OR
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::OR)] = {
+          // OR r/m, r
+          OrPatterns::rm_r(OperandSize::B8, 0x08),
+          OrPatterns::rm_r(OperandSize::B16, 0x09),
+          OrPatterns::rm_r(OperandSize::B32, 0x09),
+          OrPatterns::rm_r(OperandSize::B64, 0x09),
+
+          // OR r, r/m
+          OrPatterns::r_rm(OperandSize::B8, 0x0A),
+          OrPatterns::r_rm(OperandSize::B16, 0x0B),
+          OrPatterns::r_rm(OperandSize::B32, 0x0B),
+          OrPatterns::r_rm(OperandSize::B64, 0x0B),
+
+          // OR AL, imm8  (shortform 0x0C)
+          OrPatterns::al_imm8(0x0C),
+
+          // OR r/m, imm  (0x80/0x81 /1)
+          OrPatterns::rm_imm(OperandSize::B8, 0x80, 1),
+          OrPatterns::rm_imm(OperandSize::B16, 0x81, 1),
+          OrPatterns::rm_imm(OperandSize::B32, 0x81, 1),
+          OrPatterns::rm_imm(OperandSize::B64, 0x81, 1),
+      };
+
+      /// ============================================================================
+      /// XOR — Bitwise XOR
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::XOR)] = {
+          // XOR r/m, r
+          XorPatterns::rm_r(OperandSize::B8, 0x30),
+          XorPatterns::rm_r(OperandSize::B16, 0x31),
+          XorPatterns::rm_r(OperandSize::B32, 0x31),
+          XorPatterns::rm_r(OperandSize::B64, 0x31),
+
+          // XOR r, r/m
+          XorPatterns::r_rm(OperandSize::B8, 0x32),
+          XorPatterns::r_rm(OperandSize::B16, 0x33),
+          XorPatterns::r_rm(OperandSize::B32, 0x33),
+          XorPatterns::r_rm(OperandSize::B64, 0x33),
+
+          // XOR AL, imm8  (shortform 0x34)
+          XorPatterns::al_imm8(0x34),
+
+          // XOR r/m, imm  (0x80/0x81 /6)
+          XorPatterns::rm_imm(OperandSize::B8, 0x80, 6),
+          XorPatterns::rm_imm(OperandSize::B16, 0x81, 6),
+          XorPatterns::rm_imm(OperandSize::B32, 0x81, 6),
+          XorPatterns::rm_imm(OperandSize::B64, 0x81, 6),
+      };
+
+      /// ============================================================================
+      /// NOT — Bitwise One's Complement
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::NOT)] = {
+          // NOT r/m  →  F6 /2 / F7 /2
+          NotPatterns::rm(OperandSize::B8, 0xF6),
+          NotPatterns::rm(OperandSize::B16, 0xF7),
+          NotPatterns::rm(OperandSize::B32, 0xF7),
+          NotPatterns::rm(OperandSize::B64, 0xF7),
+      };
+
+      /// ============================================================================
+      /// SHL — Shift Left
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::SHL)] = {
+          // SHL r/m, 1  →  D0 /4 / D1 /4
+          ShlPatterns::rm_1(OperandSize::B8, 0xD0),
+          ShlPatterns::rm_1(OperandSize::B16, 0xD1),
+          ShlPatterns::rm_1(OperandSize::B32, 0xD1),
+          ShlPatterns::rm_1(OperandSize::B64, 0xD1),
+
+          // SHL r/m, imm8  →  C0 /4 / C1 /4
+          ShlPatterns::rm_imm8(OperandSize::B8, 0xC0),
+          ShlPatterns::rm_imm8(OperandSize::B16, 0xC1),
+          ShlPatterns::rm_imm8(OperandSize::B32, 0xC1),
+          ShlPatterns::rm_imm8(OperandSize::B64, 0xC1),
+
+          // SHL r/m, CL  →  D2 /4 / D3 /4
+          ShlPatterns::rm_cl(OperandSize::B8, 0xD2),
+          ShlPatterns::rm_cl(OperandSize::B16, 0xD3),
+          ShlPatterns::rm_cl(OperandSize::B32, 0xD3),
+          ShlPatterns::rm_cl(OperandSize::B64, 0xD3),
+      };
+
+      /// ============================================================================
+      /// SHR — Logical Shift Right
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::SHR)] = {
+          // SHR r/m, 1  →  D0 /5 / D1 /5
+          ShrPatterns::rm_1(OperandSize::B8, 0xD0),
+          ShrPatterns::rm_1(OperandSize::B16, 0xD1),
+          ShrPatterns::rm_1(OperandSize::B32, 0xD1),
+          ShrPatterns::rm_1(OperandSize::B64, 0xD1),
+
+          // SHR r/m, imm8  →  C0 /5 / C1 /5
+          ShrPatterns::rm_imm8(OperandSize::B8, 0xC0),
+          ShrPatterns::rm_imm8(OperandSize::B16, 0xC1),
+          ShrPatterns::rm_imm8(OperandSize::B32, 0xC1),
+          ShrPatterns::rm_imm8(OperandSize::B64, 0xC1),
+
+          // SHR r/m, CL  →  D2 /5 / D3 /5
+          ShrPatterns::rm_cl(OperandSize::B8, 0xD2),
+          ShrPatterns::rm_cl(OperandSize::B16, 0xD3),
+          ShrPatterns::rm_cl(OperandSize::B32, 0xD3),
+          ShrPatterns::rm_cl(OperandSize::B64, 0xD3),
+      };
+
+      /// ============================================================================
+      /// SAR — Arithmetic Shift Right
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::SAR)] = {
+          // SAR r/m, 1  →  D0 /7 / D1 /7
+          SarPatterns::rm_1(OperandSize::B8, 0xD0),
+          SarPatterns::rm_1(OperandSize::B16, 0xD1),
+          SarPatterns::rm_1(OperandSize::B32, 0xD1),
+          SarPatterns::rm_1(OperandSize::B64, 0xD1),
+
+          // SAR r/m, imm8  →  C0 /7 / C1 /7
+          SarPatterns::rm_imm8(OperandSize::B8, 0xC0),
+          SarPatterns::rm_imm8(OperandSize::B16, 0xC1),
+          SarPatterns::rm_imm8(OperandSize::B32, 0xC1),
+          SarPatterns::rm_imm8(OperandSize::B64, 0xC1),
+
+          // SAR r/m, CL  →  D2 /7 / D3 /7
+          SarPatterns::rm_cl(OperandSize::B8, 0xD2),
+          SarPatterns::rm_cl(OperandSize::B16, 0xD3),
+          SarPatterns::rm_cl(OperandSize::B32, 0xD3),
+          SarPatterns::rm_cl(OperandSize::B64, 0xD3),
+      };
+
+      /// ============================================================================
+      /// CMP — Compare
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::CMP)] = {
+          // CMP r/m, r
+          CmpPatterns::rm_r(OperandSize::B8, 0x38),
+          CmpPatterns::rm_r(OperandSize::B16, 0x39),
+          CmpPatterns::rm_r(OperandSize::B32, 0x39),
+          CmpPatterns::rm_r(OperandSize::B64, 0x39),
+
+          // CMP r, r/m
+          CmpPatterns::r_rm(OperandSize::B8, 0x3A),
+          CmpPatterns::r_rm(OperandSize::B16, 0x3B),
+          CmpPatterns::r_rm(OperandSize::B32, 0x3B),
+          CmpPatterns::r_rm(OperandSize::B64, 0x3B),
+
+          // CMP AL, imm8  (shortform 0x3C)
+          CmpPatterns::al_imm8(0x3C),
+
+          // CMP r/m, imm  (0x80/0x81 /7)
+          CmpPatterns::rm_imm(OperandSize::B8, 0x80, 7),
+          CmpPatterns::rm_imm(OperandSize::B16, 0x81, 7),
+          CmpPatterns::rm_imm(OperandSize::B32, 0x81, 7),
+          CmpPatterns::rm_imm(OperandSize::B64, 0x81, 7),
+      };
+
+      /// ============================================================================
+      /// TEST — Bitwise AND without storing result
+      /// ============================================================================
+      table[static_cast<size_t>(Opcode::TEST)] = {
+          // TEST r/m, r
+          TestPatterns::rm_r(OperandSize::B8, 0x84),
+          TestPatterns::rm_r(OperandSize::B16, 0x85),
+          TestPatterns::rm_r(OperandSize::B32, 0x85),
+          TestPatterns::rm_r(OperandSize::B64, 0x85),
+
+          // TEST AL, imm8  (shortform 0xA8)
+          TestPatterns::al_imm8(0xA8),
+
+          // TEST r/m, imm  (0xF6/0xF7 /0)
+          TestPatterns::rm_imm(OperandSize::B8, 0xF6, 0),
+          TestPatterns::rm_imm(OperandSize::B16, 0xF7, 0),
+          TestPatterns::rm_imm(OperandSize::B32, 0xF7, 0),
+          TestPatterns::rm_imm(OperandSize::B64, 0xF7, 0),
+      };
+
+      /// ============================================================================
       /// SYSCALL
       /// ============================================================================
       table[static_cast<size_t>(Opcode::SYSCALL)] = {
