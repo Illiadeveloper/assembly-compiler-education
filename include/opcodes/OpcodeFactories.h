@@ -713,3 +713,56 @@ struct RetPatterns {
   /// @brief RET imm16 — near return, pop imm16 extra bytes after return address
   static OpcodePattern ret_imm16();
 };
+
+// =============================================================================
+// Stack / frame
+// =============================================================================
+ 
+/// @brief Factory for ENTER instruction patterns
+///
+/// @details Creates a stack frame for a procedure. Equivalent to the
+/// prologue sequence PUSH RBP / MOV RBP, RSP / SUB RSP, size, but
+/// also handles nested lexical levels (nesting level > 0) by copying
+/// frame pointers from outer frames — a feature used by Pascal-style
+/// languages. In C/C++ the nesting level is always 0.
+///
+/// Encoding reference:
+///   ENTER imm16, imm8 → 0xC8  iw  ib
+struct EnterPatterns {
+  /// @brief ENTER imm16, imm8 — allocate stack frame
+  static OpcodePattern imm16_imm8();
+};
+ 
+/// @brief Factory for LEAVE instruction patterns
+///
+/// @details Collapses the current stack frame created by ENTER or a
+/// manual prologue. Equivalent to: MOV RSP, RBP / POP RBP.
+/// Takes no operands — always operates on RSP and RBP implicitly.
+/// In 64-bit mode always uses 64-bit operand size.
+///
+/// Encoding reference:
+///   LEAVE → 0xC9
+struct LeavePatterns {
+  /// @brief LEAVE — restore RSP and RBP from current stack frame
+  static OpcodePattern leave();
+};
+ 
+// =============================================================================
+// System / misc
+// =============================================================================
+ 
+/// @brief Factory for NOP instruction patterns
+///
+/// @details No operation — does nothing except consume one byte and
+/// advance the instruction pointer. Commonly used for:
+///   - Padding to align code to cache line boundaries
+///   - Filling space left by deleted instructions (hot-patching)
+///   - Inserting deliberate pipeline delays
+///
+/// Encoding reference:
+///   NOP → 0x90
+struct NopPatterns {
+  /// @brief NOP — single-byte no operation
+  static OpcodePattern nop();
+};
+

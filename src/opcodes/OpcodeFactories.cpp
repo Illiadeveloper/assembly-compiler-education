@@ -898,3 +898,43 @@ OpcodePattern RetPatterns::ret_imm16() {
                        ExtraEncoding::IMM16,
                        {0}};
 }
+
+/// ============================================================================
+/// ENTER — Create Stack Frame
+/// ============================================================================
+
+OpcodePattern EnterPatterns::imm16_imm8() {
+  // ENTER encodes two immediates back-to-back after the opcode:
+  // first a 16-bit frame size, then an 8-bit nesting level.
+  // There is no ModRM byte.
+  return OpcodePattern{
+      Opcode::ENTER,
+      {{OK_IMM, OperandSize::B16, std::nullopt},  // frame size
+       {OK_IMM, OperandSize::B8, std::nullopt}},  // nesting level
+      {0xC8},
+      false,
+      std::nullopt,
+      false,
+      ExtraEncoding::IMM16,  // encodes first imm16, then imm8 follows
+      {0, 1}};
+}
+
+/// ============================================================================
+/// LEAVE — Destroy Stack Frame
+/// ============================================================================
+
+OpcodePattern LeavePatterns::leave() {
+  return OpcodePattern{
+      Opcode::LEAVE, {},  // no operands — RSP and RBP are implicit
+      {0xC9},        false, std::nullopt, false, ExtraEncoding::NONE, {}};
+}
+
+/// ============================================================================
+/// NOP — No Operation
+/// ============================================================================
+
+OpcodePattern NopPatterns::nop() {
+  return OpcodePattern{
+      Opcode::NOP, {},  // no operands
+      {0x90},      false, std::nullopt, false, ExtraEncoding::NONE, {}};
+}
