@@ -199,11 +199,6 @@
  * | `NOP`     | No operation |
  * | `SYSCALL` | Linux system call |
  *
- * @note
- * Not all encoding forms may be implemented for every instruction.
- * Patterns are added incrementally to `OpcodeTable` via factory structs
- * (`AddPatterns`, `MovPatterns`, etc.). If no matching pattern is found,
- * `InstructionEncoder` reports a `CompilerError` with stage `ENCODER`.
  *
  * @section supported_directives Supported Directives
  *

@@ -77,7 +77,7 @@ src/
 ├── parser/           
 │   └── Parser        — Syntax analysis (Parser, MemoryExpression)
 ├── grouper/          
-│   └── ElfWriter     — IR grouping (Grouper)
+│   └── Grouper       — IR grouping (Grouper)
 ├── encoder/          — Size resolution, layout, ELF output
 │   ├── InstructionEncoder  — x86-64 instruction → bytes
 │   ├── SizeResolver        — iterative offset computation
@@ -98,6 +98,7 @@ src/
     ├── Token               — token types and source spans
     ├── Registers           — register enum and info table
     ├── OperandTypes        — operand size/kind enums
+    ├── Helper              — helping functions
     └── CompilerError       — unified error reporting
 ```
 
@@ -162,7 +163,7 @@ echo $?   # 0
 | Grouper        | 🟢 Done     |
 | SizeResolver   | 🟢 Done     |
 | Layout         | 🟢 Done     |
-| InstructionEncoder | 🟡 In progress (patterns being added) |
+| InstructionEncoder | 🟢 Done |
 | ElfWriter      | 🟢 Done     |
 
 ---
